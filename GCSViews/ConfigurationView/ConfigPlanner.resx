@@ -1969,6 +1969,54 @@
   <data name="&gt;&gt;CHK_advancedview.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
+  <data name="label6.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="label6.Location" type="System.Drawing.Point, System.Drawing">
+    <value>12, 482</value>
+  </data>
+  <data name="label6.Size" type="System.Drawing.Size, System.Drawing">
+    <value>89, 13</value>
+  </data>
+  <data name="label6.TabIndex" type="System.Int32, mscorlib">
+    <value>107</value>
+  </data>
+    <data name="label6.Text" xml:space="preserve">
+  <value>GStreamer config</value>
+  </data>
+  <data name="&gt;&gt;label6.Name" xml:space="preserve">
+    <value>label6</value>
+  </data>
+  <data name="&gt;&gt;label6.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label6.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;label6.ZOrder" xml:space="preserve">
+   <value>1</value>
+  </data>
+  <data name="GStreamerConfig.Location" type="System.Drawing.Point, System.Drawing">
+    <value>127, 482</value>
+  </data>
+  <data name="GStreamerConfig.Multiline" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="GStreamerConfig.Size" type="System.Drawing.Size, System.Drawing">
+    <value>565, 75</value>
+  </data>
+  <data name="GStreamerConfig.TabIndex" type="System.Int32, mscorlib">
+    <value>108</value>
+  </data>
+  <data name="&gt;&gt;GStreamerConfig.Name" xml:space="preserve">
+    <value>GStreamerConfig</value>
+  </data>
+  <data name="&gt;&gt;GStreamerConfig.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;GStreamerConfig.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
   <data name="CHK_showairports.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>

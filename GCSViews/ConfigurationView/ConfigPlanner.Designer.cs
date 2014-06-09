@@ -92,6 +92,8 @@
             this.CHK_Password = new System.Windows.Forms.CheckBox();
             this.CHK_speechlowspeed = new System.Windows.Forms.CheckBox();
             this.CHK_advancedview = new System.Windows.Forms.CheckBox();
+            this.label6 = new System.Windows.Forms.Label();
+            this.GStreamerConfig = new System.Windows.Forms.TextBox();
             this.CHK_showairports = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.NUM_tracklength)).BeginInit();
             this.SuspendLayout();
@@ -587,6 +589,17 @@
             this.CHK_advancedview.UseVisualStyleBackColor = true;
             this.CHK_advancedview.CheckedChanged += new System.EventHandler(this.CHK_advancedview_CheckedChanged);
             // 
+            // label6
+            // 
+            resources.ApplyResources(this.label6, "label6");
+            this.label6.Name = "label6";
+            // 
+            // GStreamerConfig
+            // 
+            resources.ApplyResources(this.GStreamerConfig, "GStreamerConfig");
+            this.GStreamerConfig.Name = "GStreamerConfig";
+            // 
+            // 
             // CHK_showairports
             // 
             resources.ApplyResources(this.CHK_showairports, "CHK_showairports");
@@ -601,6 +614,8 @@
             resources.ApplyResources(this, "$this");
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.CHK_showairports);
+            this.Controls.Add(this.GStreamerConfig);
+            this.Controls.Add(this.label6);
             this.Controls.Add(this.CHK_advancedview);
             this.Controls.Add(this.CHK_speechlowspeed);
             this.Controls.Add(this.CHK_Password);
@@ -737,6 +752,8 @@
         private System.Windows.Forms.CheckBox CHK_Password;
         private System.Windows.Forms.CheckBox CHK_speechlowspeed;
         private System.Windows.Forms.CheckBox CHK_advancedview;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.TextBox GStreamerConfig;
         private System.Windows.Forms.CheckBox CHK_showairports;
     }
 }

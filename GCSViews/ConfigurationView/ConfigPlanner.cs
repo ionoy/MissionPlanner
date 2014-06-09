@@ -47,8 +47,12 @@ namespace MissionPlanner.GCSViews.ConfigurationView
         public ConfigPlanner()
         {
             InitializeComponent();
+                
+            GStreamerConfig.Text = MainV2.config["gst_config"].ToString();
+            GStreamerConfig.TextChanged += (sender, args) => {
+                MainV2.config["gst_config"] = GStreamerConfig.Text;
+            };
         }
-
 
         private void BUT_videostart_Click(object sender, EventArgs e)
         {

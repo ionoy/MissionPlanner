@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Configuration;
 using System.Drawing;
@@ -580,8 +581,57 @@ namespace MissionPlanner
                 //    MainV2.config["fixparams"] = 1;
             }
 
+            KeyDown += (sender, args) => {
+                if (args.Alt) {
+                    //Camera pitch + Yaw
+                    if (args.KeyCode == Keys.Up) SendRcOverride(rc => { rc.chan6_raw = 1700; return rc; });
+                    if (args.KeyCode == Keys.Down) SendRcOverride(rc => { rc.chan6_raw = 1300; return rc; });
+                    if (args.KeyCode == Keys.Left) SendRcOverride(rc => { rc.chan4_raw = 1450; return rc; });
+                    if (args.KeyCode == Keys.Right) SendRcOverride(rc => { rc.chan4_raw = 1550; return rc; });
 
+                    //Camera input channel
+                    if (args.KeyCode == Keys.F9) SendSriPost(0, false);
+                    if (args.KeyCode == Keys.F10) SendSriPost(0, true);
+                    if (args.KeyCode == Keys.F11) SendSriPost(1, false);
+                    if (args.KeyCode == Keys.F12) SendSriPost(1, true);
+                } else if (args.Control) {
+                    //Pitch + roll
+                    if (args.KeyCode == Keys.Up) SendRcOverride(rc => { rc.chan2_raw = 1250; return rc; });
+                    if (args.KeyCode == Keys.Down) SendRcOverride(rc => { rc.chan2_raw = 1750; return rc; });
+                    if (args.KeyCode == Keys.Left) SendRcOverride(rc => { rc.chan1_raw = 1250; return rc; });
+                    if (args.KeyCode == Keys.Right) SendRcOverride(rc => { rc.chan1_raw = 1750; return rc; });
 
+                    //Zoom
+                    if (args.KeyCode == Keys.Oemplus) SendRcOverride(rc => { rc.chan7_raw = 1100; return rc; });
+                    if (args.KeyCode == Keys.OemMinus) SendRcOverride(rc => { rc.chan7_raw = 1900; return rc; });
+                }
+            };
+
+            KeyUp += (sender, args) => SendRcOverride(rc => rc);
+        }
+
+        private void SendSriPost(int channel, bool isStabilized)
+        {
+            using (var client = new WebClient()) {
+                var form = new NameValueCollection();
+                form["inputselect"] = channel.ToString();
+                form["stabcontrol"] = isStabilized ? "enable" : "disable";
+                form["Apply"] = "Apply";
+
+                client.UploadValuesAsync(new Uri("http://192.168.1.65/cgi-bin/ils2?SETSTAB"), "POST", form);
+            }
+        }
+
+        void SendRcOverride(Func<MAVLink.mavlink_rc_channels_override_t, MAVLink.mavlink_rc_channels_override_t> propertySetter)
+        {
+            var rc = new MAVLink.mavlink_rc_channels_override_t {
+                target_component = comPort.MAV.compid,
+                target_system = comPort.MAV.sysid,
+            };
+
+            rc = propertySetter(rc);
+            
+            comPort.sendPacket(rc);
         }
 
         private void BGLoadAirports(object nothing)

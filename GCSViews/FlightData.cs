@@ -4,6 +4,7 @@ using System.Text; // stringbuilder
 using System.Drawing; // pens etc
 using System.IO; // file io
 using System.IO.Ports; // serial
+using System.Threading.Tasks;
 using System.Windows.Forms; // Forms
 using System.Collections; // hashs
 using System.Text.RegularExpressions; // regex
@@ -25,6 +26,7 @@ using log4net;
 using System.Reflection;
 using MissionPlanner.Log;
 using GMap.NET.MapProviders;
+using GStreamer;
 
 // written by michael oborne
 namespace MissionPlanner.GCSViews
@@ -110,6 +112,7 @@ namespace MissionPlanner.GCSViews
         Script script;
         //whether or not the output console has already started
         bool outputwindowstarted = false;
+        private HwndRenderer _hwndRenderer;
 
         protected override void Dispose(bool disposing)
         {
@@ -281,6 +284,31 @@ namespace MissionPlanner.GCSViews
             catch { }
 
             MainV2.comPort.ParamListChanged += FlightData_ParentChanged;
+
+            if (MainV2.config["gst_config"] == null)
+                MainV2.config["gst_config"] = "videotestsrc ! d3dvideosink";
+
+            tabVideo.ContextMenu = new ContextMenu();
+            tabVideo.ContextMenu.MenuItems.Add("Refresh video", (sender, args) => {
+                var pipeline = MainV2.config["gst_config"].ToString();
+
+                if (pipeline.IndexOf("$filename", StringComparison.Ordinal) != -1) {
+                    var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                    var videoFolder = Path.Combine(userProfile, "Videos");
+                    var filename = DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss.avi");
+                    pipeline = pipeline.Replace("$filename", Path.Combine(videoFolder, filename).Replace("\\", "\\\\"));
+                    System.Diagnostics.Debug.WriteLine(pipeline);
+                }
+
+                if (_hwndRenderer != null)
+                    _hwndRenderer.Stop();
+
+                _hwndRenderer = new HwndRenderer(pipeline, (uint)tabVideo.Handle.ToInt32());
+            });
+            tabVideo.ContextMenu.MenuItems.Add("Stop video", (sender, args) => {
+                if (_hwndRenderer != null)
+                    _hwndRenderer.Stop();
+            });
 
             MainV2.AdvancedChanged += MainV2_AdvancedChanged;
 
@@ -3171,6 +3199,74 @@ namespace MissionPlanner.GCSViews
                         return;
                     }
                 }
+            }
+        }
+
+        private void FullStop_Click(object sender, EventArgs e)
+        {
+            var lat = MainV2.comPort.MAV.cs.lat;
+            var lng = MainV2.comPort.MAV.cs.lng;
+
+            var groundspeed = MainV2.comPort.MAV.cs.groundspeed;
+            var stopDistance = groundspeed * 4; //in meters
+            var yaw = Math.PI / 180.0 * MainV2.comPort.MAV.cs.yaw;
+            var dx = stopDistance * Math.Sin(yaw);
+            var dy = stopDistance * Math.Cos(yaw);
+
+            lat = lat + (180.0 / Math.PI) * (dy / 6378137);
+            lng = lng + (180.0 / Math.PI) * (dx / 6378137) / Math.Cos(Math.PI / 180.0 * lat);
+
+            var gotohere = new Locationwp {
+                id = (byte)MAVLink.MAV_CMD.WAYPOINT,
+                alt = MainV2.comPort.MAV.cs.alt,
+                lat = lat,
+                lng = lng
+            };
+
+            //            var gMapOverlay = new GMapOverlay();
+            //            gMapOverlay.Markers.Add(new GMapMarkerQuad(new PointLatLng(lat, lng), 0, 0, 0));
+            //            MainV2.instance.FlightData.gMapControl1.Overlays.Add(gMapOverlay);
+
+            try {
+                MainV2.comPort.setGuidedModeWP(gotohere);
+            } catch (Exception ex) {
+                MainV2.comPort.giveComport = false; CustomMessageBox.Show("Error sending command : " + ex.Message, "Error");
+            }
+        }
+
+        private void Takeoff_Click(object sender, EventArgs e)
+        {
+            //            var gMapOverlay = new GMapOverlay();
+            //            gMapOverlay.Markers.Add(new GMapMarkerQuad(new PointLatLng(lat, lng), 0, 0, 0));
+            //            MainV2.instance.FlightData.gMapControl1.Overlays.Add(gMapOverlay);
+
+            var comPort = MainV2.comPort;
+
+            try {
+                Task.Factory.StartNew(() => {
+                    MainV2.comPort.setMode("Stabilize");
+
+                    Thread.Sleep(500);
+
+                    if (comPort.doARM(true)) {
+                        var rc = new MAVLink.mavlink_rc_channels_override_t {
+                            target_component = comPort.MAV.compid,
+                            target_system = comPort.MAV.sysid,
+                            chan3_raw = 1250
+                        };
+
+                        comPort.sendPacket(rc);
+
+                        Thread.Sleep(1000);
+
+                        MainV2.comPort.setMode("Auto");
+
+                        rc.chan3_raw = 0;
+                        comPort.sendPacket(rc);
+                    }
+                });
+            } catch (Exception ex) {
+                comPort.giveComport = false; CustomMessageBox.Show("Error sending command : " + ex.Message, "Error");
             }
         }
     }
