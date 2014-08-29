@@ -56,6 +56,7 @@ namespace MissionPlanner.Utilities
             public string urlvrbrainv50;
             public string urlvrbrainv51;
             public string urlvrherov10;
+            public string urlvrubrainv51;
             public string name;
             public string desc;
             public int k_format_version;
@@ -163,6 +164,7 @@ namespace MissionPlanner.Utilities
             string vrbrainv50 = "";
             string vrbrainv51 = "";
             string vrherov10 = "";
+            string vrubrainv51 = "";
             string name = "";
             string desc = "";
             int k_format_version = 0;
@@ -217,6 +219,9 @@ namespace MissionPlanner.Utilities
                             case "urlvrherov10":
                                 vrherov10 = xmlreader.ReadString();
                                 break;
+                            case "urlvrubrainv51":
+                                vrubrainv51 = xmlreader.ReadString();
+                                break;
                             case "name":
                                 name = xmlreader.ReadString();
                                 break;
@@ -241,6 +246,7 @@ namespace MissionPlanner.Utilities
                                     temp.urlvrbrainv50 = vrbrainv50;
                                     temp.urlvrbrainv51 = vrbrainv51;
                                     temp.urlvrherov10 = vrherov10;
+                                    temp.urlvrubrainv51 = vrubrainv51;
                                     temp.k_format_version = k_format_version;
 
                                     try
@@ -278,6 +284,7 @@ namespace MissionPlanner.Utilities
                                 vrbrainv50 = "";
                                 vrbrainv51 = "";
                                 vrherov10 = "";
+                                vrubrainv51 = "";
                                 name = "";
                                 desc = "";
                                 k_format_version = 0;
@@ -318,12 +325,21 @@ namespace MissionPlanner.Utilities
 
         public static List<software> LoadSoftwares()
         {
-            System.Xml.Serialization.XmlSerializer reader = new System.Xml.Serialization.XmlSerializer(typeof(List<software>), new Type[] { typeof(software) });
-
-            using (StreamReader sr = new StreamReader(Application.StartupPath + Path.DirectorySeparatorChar + "fwversions.xml"))
+            try
             {
-                return (List<software>)reader.Deserialize(sr);
+                System.Xml.Serialization.XmlSerializer reader = new System.Xml.Serialization.XmlSerializer(typeof(List<software>), new Type[] { typeof(software) });
+
+                using (StreamReader sr = new StreamReader(Application.StartupPath + Path.DirectorySeparatorChar + "fwversions.xml"))
+                {
+                    return (List<software>)reader.Deserialize(sr);
+                }
             }
+            catch (Exception ex) 
+            { 
+                log.Error(ex);
+            }
+
+            return new List<software>();
         }
 
         void updateProgress(int percent, string status)
@@ -411,7 +427,7 @@ namespace MissionPlanner.Utilities
 
                 int apmformat_version = -1; // fail continue
 
-                if (board != BoardDetect.boards.px4 && board != BoardDetect.boards.px4v2 && board != BoardDetect.boards.vrbrainv40 && board != BoardDetect.boards.vrbrainv45 && board != BoardDetect.boards.vrbrainv50 && board != BoardDetect.boards.vrbrainv51 && board != BoardDetect.boards.vrherov10)
+                if (board != BoardDetect.boards.px4 && board != BoardDetect.boards.px4v2 && board != BoardDetect.boards.vrbrainv40 && board != BoardDetect.boards.vrbrainv45 && board != BoardDetect.boards.vrbrainv50 && board != BoardDetect.boards.vrbrainv51 && board != BoardDetect.boards.vrherov10 && board != BoardDetect.boards.vrubrainv51)
                 {
                     try
                     {
@@ -475,6 +491,10 @@ namespace MissionPlanner.Utilities
                 else if (board == BoardDetect.boards.vrherov10)
                 {
                     baseurl = temp.urlvrherov10.ToString();
+                }
+                else if (board == BoardDetect.boards.vrubrainv51)
+                {
+                    baseurl = temp.urlvrubrainv51.ToString();
                 }
                 else
                 {
@@ -727,7 +747,7 @@ namespace MissionPlanner.Utilities
                 }
             }
 
-            updateProgress(0, "ERROR: No Responce from board");
+            updateProgress(0, "ERROR: No Response from board");
             return false;
         }
 
@@ -855,7 +875,7 @@ namespace MissionPlanner.Utilities
                 }
             }
 
-            updateProgress(0, "ERROR: No Responce from board");
+            updateProgress(0, "ERROR: No Response from board");
             return false;
         }
 
@@ -886,7 +906,7 @@ namespace MissionPlanner.Utilities
                 return UploadPX4(filename);
             }
 
-            if (board == BoardDetect.boards.vrbrainv40 || board == BoardDetect.boards.vrbrainv45 || board == BoardDetect.boards.vrbrainv50 || board == BoardDetect.boards.vrbrainv51 || board == BoardDetect.boards.vrherov10)
+            if (board == BoardDetect.boards.vrbrainv40 || board == BoardDetect.boards.vrbrainv45 || board == BoardDetect.boards.vrbrainv50 || board == BoardDetect.boards.vrbrainv51 || board == BoardDetect.boards.vrherov10 || board == BoardDetect.boards.vrubrainv51)
             {
                 return UploadVRBRAIN(filename);
             }

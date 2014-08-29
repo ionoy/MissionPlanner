@@ -85,6 +85,13 @@ namespace MissionPlanner.GCSViews.ConfigurationView
             // prefill all fields
             processToScreen();
 
+            // unlock entries if they differ
+            if (RATE_RLL_P.Value != RATE_PIT_P.Value || RATE_RLL_I.Value != RATE_PIT_I.Value
+                || RATE_RLL_D.Value != RATE_PIT_D.Value || RATE_RLL_IMAX.Value != RATE_PIT_IMAX.Value)
+            {
+                CHK_lockrollpitch.Checked = false;
+            }
+
             if (MainV2.comPort.MAV.param["H_SWASH_TYPE"] != null)
             {
                 CHK_lockrollpitch.Checked = false;

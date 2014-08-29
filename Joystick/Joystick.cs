@@ -87,19 +87,46 @@ namespace MissionPlanner.Joystick
             Arm,
             Disarm,
             Digicam_Control,
+            TakeOff,
+            Mount_Mode
        //     Mount_Control
         }
 
-        ~Joystick()
+
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+        /// <summary>
+        /// Implement reccomended best practice dispose pattern
+        /// http://msdn.microsoft.com/en-us/library/b1yfkh5e%28v=vs.110%29.aspx
+        /// </summary>
+        /// <param name="disposing"></param>
+        virtual protected void Dispose(bool disposing)
         {
             try
             {
-                if (joystick != null)
-                    if (joystick.Properties != null)
+                //not sure if this is a problem from the finalizer?
+                if (disposing && joystick != null && joystick.Properties != null)
                         joystick.Unacquire();
             }
-            catch { }       
+            catch { }
+
+            try
+            {
+                if (disposing && joystick != null)
+                    joystick.Dispose();
+            }
+            catch { }
+            
+            //tell gc not to call finalize, this object will be GC'd quicker now.
+            GC.SuppressFinalize(this);
         }
+        //no need for finalizer...
+        //~Joystick()
+        //{
+        //    Dispose(false);
+        //}
 
         public Joystick()
         {
@@ -589,6 +616,20 @@ namespace MissionPlanner.Joystick
                             });
                         }
                         break;
+                    case buttonfunction.Mount_Mode:
+                        if (but.p1 != null)
+                        {
+                            MainV2.instance.BeginInvoke((System.Windows.Forms.MethodInvoker)delegate()
+                            {
+                                try
+                                {
+                                    MainV2.comPort.setParam("MNT_MODE", but.p1);
+                                }
+                                catch { CustomMessageBox.Show("Failed to change mount mode"); }
+                            });
+                        }
+                        break;
+                        
                     case buttonfunction.Arm:
                         MainV2.instance.BeginInvoke((System.Windows.Forms.MethodInvoker)delegate()
                             {
@@ -598,6 +639,23 @@ namespace MissionPlanner.Joystick
                                 }
                                 catch { CustomMessageBox.Show("Failed to Arm"); }
                             });
+                        break;
+                    case buttonfunction.TakeOff:
+                        MainV2.instance.BeginInvoke((System.Windows.Forms.MethodInvoker)delegate()
+                        {
+                            try
+                            {
+                                MainV2.comPort.setMode("Guided");
+                                if (MainV2.comPort.MAV.cs.firmware == MainV2.Firmwares.ArduCopter2) {
+                                    MainV2.comPort.doCommand(MAVLink.MAV_CMD.TAKEOFF, 0, 0, 0, 0, 0, 0, 2);
+                                }
+                                else
+                                {
+                                    MainV2.comPort.doCommand(MAVLink.MAV_CMD.TAKEOFF, 0, 0, 0, 0, 0, 0, 20);
+                                }
+                            }
+                            catch { CustomMessageBox.Show("Failed to takeoff"); }
+                        });
                         break;
                     case buttonfunction.Disarm:
                         MainV2.instance.BeginInvoke((System.Windows.Forms.MethodInvoker)delegate()
@@ -1077,12 +1135,6 @@ namespace MissionPlanner.Joystick
             if (value < min)
                 return min;
             return value;
-        }
-
-        public void Dispose()
-        {
-            if (joystick != null)
-                joystick.Dispose();
         }
     }
 }

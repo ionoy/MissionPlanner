@@ -361,7 +361,12 @@ namespace MissionPlanner.Log
 
         private void Log_FormClosing(object sender, FormClosingEventArgs e)
         {
-
+            try
+            {
+                if (selectform != null)
+                    selectform.Close();
+            }
+            catch { }
         }
 
         private void BUT_redokml_Click(object sender, EventArgs e)
@@ -1472,8 +1477,7 @@ namespace MissionPlanner.Log
         {
 
             OpenFileDialog openFileDialog1 = new OpenFileDialog();
-            openFileDialog1.Filter = "*.tlog|*.tlog";
-            openFileDialog1.FilterIndex = 2;
+            openFileDialog1.Filter = "*.tlog|*.tlog|*.log|*.log";
             openFileDialog1.RestoreDirectory = true;
             openFileDialog1.Multiselect = true;
             try
@@ -1488,14 +1492,7 @@ namespace MissionPlanner.Log
                 {
                     try
                     {
-                        Utilities.S3Uploader s3 = new S3Uploader("");
-                        s3.UploadTlog((string)logfile);
-                        progressBar1.Value = s3.Progress;
-                        while (s3.Progress != 100)
-                        {
-                            progressBar1.Value = s3.Progress;
-                            System.Threading.Thread.Sleep(100);
-                        }
+                        Utilities.DroneApi.droneshare.doUpload(logfile);
                     }
                     catch (Exception ex) { CustomMessageBox.Show(ex.Message); }
                 }

@@ -231,10 +231,20 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                 TXT_divider.Text = (maxvolt / topvolt).ToString();
                 TXT_ampspervolt.Text = (maxamps / topamps).ToString();
             }
-            else if (selection == 5) // 3dr esc
+            else if (selection == 5) // 3dr 4 in one esc
             {
                 TXT_divider.Text = (12.02).ToString();
                 TXT_ampspervolt.Text = (17).ToString();
+            }
+            else if (selection == 6) // hv 3dr apm - what i have
+            {
+                TXT_divider.Text = (12.02).ToString();
+                TXT_ampspervolt.Text = (24).ToString();
+            }
+            else if (selection == 7) // hv 3dr px4
+            {
+                TXT_divider.Text = (12.02).ToString();
+                TXT_ampspervolt.Text = (33.52).ToString();
             }
 
             // enable to update
@@ -268,7 +278,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
 
         public void Activate()
         {
-            if (!MainV2.comPort.BaseStream.IsOpen)
+            if (!MainV2.comPort.BaseStream.IsOpen || !MainV2.comPort.MAV.param.ContainsKey("BATT_MONITOR"))
             {
                 this.Enabled = false;
                 return;
@@ -440,6 +450,22 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                     //px4
                     MainV2.comPort.setParam("BATT_VOLT_PIN", 2);
                     MainV2.comPort.setParam("BATT_CURR_PIN", 3);
+                }
+                else if (selection == 5)
+                {
+                    //vrbrain 5
+                    MainV2.comPort.setParam("BATT_VOLT_PIN", 10);
+                    MainV2.comPort.setParam("BATT_CURR_PIN", 11);
+                    MainV2.comPort.setParam(new string[] { "VOLT_DIVIDER", "BATT_VOLT_MULT" }, 10);
+                    TXT_divider.Text = "10";
+                }
+                else if (selection == 6)
+                {
+                    //vr micro brain 5
+                    MainV2.comPort.setParam("BATT_VOLT_PIN", 10);
+                    MainV2.comPort.setParam("BATT_CURR_PIN", -1);
+                    MainV2.comPort.setParam(new string[] { "VOLT_DIVIDER", "BATT_VOLT_MULT" }, 10);
+                    TXT_divider.Text = "10";
                 }
             }
             catch { CustomMessageBox.Show("Set BATT_????_PIN Failed", "Error"); }
