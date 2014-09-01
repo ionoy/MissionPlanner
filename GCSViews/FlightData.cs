@@ -1107,7 +1107,7 @@ namespace MissionPlanner.GCSViews
                         try
                         {
                             if (MainV2.comPort.MAV.param.ContainsKey("MNT_STAB_PAN") &&
-                                (float)MainV2.comPort.MAV.param["MNT_STAB_PAN"] == 1 &&
+                               // (float)MainV2.comPort.MAV.param["MNT_STAB_PAN"] == 1 &&
                                 (float)MainV2.comPort.MAV.param["MNT_STAB_TILT"] == 1 &&
                                 (float)MainV2.comPort.MAV.param["MNT_STAB_ROLL"] == 0)
                             {
@@ -1143,9 +1143,9 @@ namespace MissionPlanner.GCSViews
                         gMapControl1.HoldInvalidation = false;
 
                         gMapControl1.Invalidate();
-                    }
 
-                    tracklast = DateTime.Now;
+                        tracklast = DateTime.Now;
+                    }  
                 }
                 catch (Exception ex) { log.Error(ex); Console.WriteLine("FD Main loop exception " + ex.ToString()); }
             }
