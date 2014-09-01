@@ -4,6 +4,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Configuration;
 using System.Drawing;
+using System.Reactive.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.IO;
@@ -614,13 +615,32 @@ namespace MissionPlanner
                 //    MainV2.config["fixparams"] = 1;
             }
 
+            var cameraPitch = (ushort)1500;
+            var upPressed = false;
+            var downPressed = false;
+
+            Observable.Interval(TimeSpan.FromMilliseconds(200))
+                      .Where(_ => upPressed || downPressed)
+                      .Subscribe(_ => {
+                          if (upPressed)
+                              cameraPitch += 10;
+                          else if (downPressed)
+                              cameraPitch -= 10;
+
+                          Debug.WriteLine(cameraPitch);
+
+                          SendRcOverride(rc => { rc.chan6_raw = cameraPitch; return rc; });
+                      });
+
             KeyDown += (sender, args) => {
                 if (args.Alt) {
                     //Camera pitch + Yaw
-                    if (args.KeyCode == Keys.Up) SendRcOverride(rc => { rc.chan6_raw = 1700; return rc; });
-                    if (args.KeyCode == Keys.Down) SendRcOverride(rc => { rc.chan6_raw = 1300; return rc; });
-                    if (args.KeyCode == Keys.Left) SendRcOverride(rc => { rc.chan4_raw = 1450; return rc; });
-                    if (args.KeyCode == Keys.Right) SendRcOverride(rc => { rc.chan4_raw = 1550; return rc; });
+                    //SendRcOverride(rc => { rc.chan6_raw = 1700; return rc; });
+                    if (args.KeyCode == Keys.Up) upPressed = true;
+                    //SendRcOverride(rc => { rc.chan6_raw = 1300; return rc; });
+                    if (args.KeyCode == Keys.Down) downPressed = true;
+                    if (args.KeyCode == Keys.Left) SendRcOverride(rc => { rc.chan4_raw = 1400; return rc; });
+                    if (args.KeyCode == Keys.Right) SendRcOverride(rc => { rc.chan4_raw = 1500; return rc; });
 
                     //Camera input channel
                     if (args.KeyCode == Keys.F9) SendSriPost(0, false);
@@ -640,7 +660,11 @@ namespace MissionPlanner
                 }
             };
 
-            KeyUp += (sender, args) => SendRcOverride(rc => rc);
+            KeyUp += (sender, args) => {
+                if (args.KeyCode == Keys.Up) upPressed = false;
+                else if (args.KeyCode == Keys.Down) downPressed = false;
+                else SendRcOverride(rc => rc);
+            };
         }
 
         private void SendSriPost(int channel, bool isStabilized)
