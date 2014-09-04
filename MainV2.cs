@@ -615,21 +615,19 @@ namespace MissionPlanner
                 //    MainV2.config["fixparams"] = 1;
             }
 
-            var cameraPitch = (ushort)1500;
+            _cameraPitch = (ushort)1500;
             var upPressed = false;
             var downPressed = false;
 
             Observable.Interval(TimeSpan.FromMilliseconds(200))
                       .Where(_ => upPressed || downPressed)
                       .Subscribe(_ => {
-                          if (upPressed)
-                              cameraPitch += 10;
-                          else if (downPressed)
-                              cameraPitch -= 10;
+                          if (upPressed && _cameraPitch < 2000)
+                              _cameraPitch += 10;
+                          else if (downPressed && _cameraPitch > 1000)
+                              _cameraPitch -= 10;
 
-                          Debug.WriteLine(cameraPitch);
-
-                          SendRcOverride(rc => { rc.chan6_raw = cameraPitch; return rc; });
+                          SendRcOverride(rc => rc);
                       });
 
             KeyDown += (sender, args) => {
@@ -639,8 +637,8 @@ namespace MissionPlanner
                     if (args.KeyCode == Keys.Up) upPressed = true;
                     //SendRcOverride(rc => { rc.chan6_raw = 1300; return rc; });
                     if (args.KeyCode == Keys.Down) downPressed = true;
-                    if (args.KeyCode == Keys.Left) SendRcOverride(rc => { rc.chan4_raw = 1400; return rc; });
-                    if (args.KeyCode == Keys.Right) SendRcOverride(rc => { rc.chan4_raw = 1500; return rc; });
+                    if (args.KeyCode == Keys.Left) SendRcOverride(rc => { rc.chan4_raw = 1440; return rc; });
+                    if (args.KeyCode == Keys.Right) SendRcOverride(rc => { rc.chan4_raw = 1560; return rc; });
 
                     //Camera input channel
                     if (args.KeyCode == Keys.F9) SendSriPost(0, false);
@@ -655,15 +653,15 @@ namespace MissionPlanner
                     if (args.KeyCode == Keys.Right) SendRcOverride(rc => { rc.chan1_raw = 1750; return rc; });
 
                     //Zoom
-                    if (args.KeyCode == Keys.Oemplus) SendRcOverride(rc => { rc.chan7_raw = 1100; return rc; });
-                    if (args.KeyCode == Keys.OemMinus) SendRcOverride(rc => { rc.chan7_raw = 1900; return rc; });
+                    if (args.KeyCode == Keys.Oemplus) SendRcOverride(rc => { rc.chan7_raw = 1100; return rc; }, true);
+                    if (args.KeyCode == Keys.OemMinus) SendRcOverride(rc => { rc.chan7_raw = 1900; return rc; }, true);
                 }
             };
 
             KeyUp += (sender, args) => {
                 if (args.KeyCode == Keys.Up) upPressed = false;
                 else if (args.KeyCode == Keys.Down) downPressed = false;
-                else SendRcOverride(rc => rc);
+                else SendRcOverride(rc => { rc.chan6_raw = _cameraPitch; return rc; });
             };
         }
 
@@ -679,15 +677,19 @@ namespace MissionPlanner
             }
         }
 
-        void SendRcOverride(Func<MAVLink.mavlink_rc_channels_override_t, MAVLink.mavlink_rc_channels_override_t> propertySetter)
+        void SendRcOverride(Func<MAVLink.mavlink_rc_channels_override_t, MAVLink.mavlink_rc_channels_override_t> propertySetter, bool isZoom = false)
         {
             var rc = new MAVLink.mavlink_rc_channels_override_t {
                 target_component = comPort.MAV.compid,
                 target_system = comPort.MAV.sysid,
             };
 
+            if(!isZoom)
+                rc.chan7_raw = 1500; //set zoom at neutral if it is other channel
+
+            rc.chan6_raw = _cameraPitch;
+
             rc = propertySetter(rc);
-            
             comPort.sendPacket(rc);
         }
 
@@ -2686,8 +2688,7 @@ namespace MissionPlanner
         const Int32 DIGCF_DEVICEINTERFACE = 0X10;
         const Int32 WM_DEVICECHANGE = 0X219;
         public static Guid GUID_DEVINTERFACE_USB_DEVICE = new Guid("A5DCBF10-6530-11D2-901F-00C04FB951ED");
-
-
+        private ushort _cameraPitch;
 
 
         public enum WM_DEVICECHANGE_enum

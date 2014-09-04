@@ -319,10 +319,16 @@ namespace MissionPlanner.GCSViews
 
                 _hwndRenderer = new HwndRenderer(pipeline, (uint)tabVideo.Handle.ToInt32());
             });
+
             tabVideo.ContextMenu.MenuItems.Add("Stop video", (sender, args) => {
                 if (_hwndRenderer != null)
                     _hwndRenderer.Stop();
             });
+
+            Application.ApplicationExit += (sender, args) => {
+                if (_hwndRenderer != null)
+                    _hwndRenderer.Stop();
+            };
 
             MainV2.AdvancedChanged += MainV2_AdvancedChanged;
 
