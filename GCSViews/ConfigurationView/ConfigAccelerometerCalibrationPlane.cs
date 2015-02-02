@@ -42,7 +42,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                     {
                         MainV2.comPort.sendPacket(new MAVLink.mavlink_command_ack_t() { command = 1, result = count });// doCommand(MAVLink.MAV_CMD.PREFLIGHT_CALIBRATION, 0, 0, 0, 0, 1, 0, 0);
                     }
-                    catch { CustomMessageBox.Show("Error writing to serial port", "Error"); return; }
+                    catch { CustomMessageBox.Show(Strings.CommandFailed, Strings.ERROR); return; }
         
                 return;
             }
@@ -68,7 +68,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
             {
                 MainV2.comPort.giveComport = false;
                 Log.Error("Exception on level", ex);
-                CustomMessageBox.Show("Failed to level : ac2 2.0.37+ is required", "Error");
+                CustomMessageBox.Show("Failed to level : ac2 2.0.37+ is required", Strings.ERROR);
             }
         }
 
@@ -120,6 +120,16 @@ namespace MissionPlanner.GCSViews.ConfigurationView
         {
             try
             {
+                if ((float)MainV2.comPort.MAV.param["AHRS_EKF_USE"] > 0)
+                {
+                    CustomMessageBox.Show("WARNING: 1D calibration should not be used when the EKF is enabled");
+                    return;
+                }
+            }
+            catch { }
+
+            try
+            {
                 Log.Info("Sending level command (mavlink 1.0)");
                 MainV2.comPort.doCommand(MAVLink.MAV_CMD.PREFLIGHT_CALIBRATION, 1, 0, 0, 0, 0, 0, 0);
 
@@ -128,7 +138,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
             catch (Exception ex)
             {
                 Log.Error("Exception on level", ex);
-                CustomMessageBox.Show("Failed to level : ac2 2.0.37+ is required", "Error");
+                CustomMessageBox.Show("Failed to level : ac2 2.0.37+ is required", Strings.ERROR);
             }
         }
 

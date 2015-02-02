@@ -99,6 +99,7 @@ namespace MissionPlanner.Log
             DATA_DISARMED = 11,
             DATA_AUTO_ARMED = 15,
             DATA_TAKEOFF = 16,
+            DATA_LAND_COMPLETE_MAYBE = 17,
             DATA_LAND_COMPLETE = 18,
             DATA_NOT_LANDED = 28,
             DATA_LOST_GPS = 19,
@@ -176,25 +177,33 @@ namespace MissionPlanner.Log
             return answer;
         }
 
+        // current gps time
+        static DateTime gpstime = DateTime.MinValue;
+        // last time of message
+        static DateTime lasttime = DateTime.MinValue;
+        // first valid gpstime
+        static DateTime gpsstarttime = DateTime.MinValue;
+
+        static int msoffset = 0;
+
         public static List<DFItem> ReadLog(Stream fn)
         {
             Clear();
             GC.Collect();
 
             List<DFItem> answer = new List<DFItem>();
+
             // current gps time
-            DateTime gpstime = DateTime.MinValue;
+            gpstime = DateTime.MinValue;
             // last time of message
-            DateTime lasttime = DateTime.MinValue;
+            lasttime = DateTime.MinValue;
             // first valid gpstime
-            DateTime gpsstarttime = DateTime.MinValue;
+            gpsstarttime = DateTime.MinValue;
 
             int lineno = 0;
-            int msoffset = 0;
+            msoffset = 0;
 
-
-            log.Info("loading log " + (GC.GetTotalMemory(false) / 1024.0/1024.0));
-           
+            log.Info("loading log " + (GC.GetTotalMemory(false) / 1024.0/1024.0));           
 
             using (StreamReader sr = new StreamReader(fn))
             {
@@ -206,119 +215,15 @@ namespace MissionPlanner.Log
 
                         lineno++;
 
-                        //line = line.Replace(",", ",");
-                        //line = line.Replace(":", ":");
+                        DFItem newitem = GetDFItemFromLine(line, lineno);
 
-                        string[] items = line.Split(new char[] { ',', ':' }, StringSplitOptions.RemoveEmptyEntries);
-
-                        if (line.StartsWith("FMT"))
-                        {
-                            FMTLine(line);
-                        }
-                        else if (line.StartsWith("GPS"))
-                        {
-                           // if (gpsstarttime == DateTime.MinValue)
-                            {
-                                gpsstarttime = GetTimeGPS(line);
-                                lasttime = gpsstarttime;
-
-                                int indextimems = FindMessageOffset("GPS", "T");
-
-                                if (indextimems != -1)
-                                {
-                                    try
-                                    {
-                                        msoffset = int.Parse(items[indextimems]);
-                                    }
-                                    catch { }
-                                }
-                            }
-                        }
-                        else if (line.StartsWith("ERR"))
-                        {
-                            Array.Resize(ref items, items.Length + 2);
-                            try
-                            {
-                                int index = FindMessageOffset("ERR", "Subsys");
-                                if (index == -1)
-                                {
-                                    throw new ArgumentNullException();
-                                }
-
-                                int index2 = FindMessageOffset("ERR", "ECode");
-                                if (index2 == -1)
-                                {
-                                    throw new ArgumentNullException();
-                                }
-
-                                items[items.Length - 2] = ""+(DFLog.error_subsystem)int.Parse(items[index]);
-                            }
-                            catch { }
-                        }
-                        else if (line.StartsWith("EV"))
-                        {
-                            Array.Resize(ref items, items.Length + 1);
-                            try
-                            {
-                                int index = FindMessageOffset("EV", "Id");
-                                if (index == -1)
-                                {
-                                    throw new ArgumentNullException();
-                                }
-
-                                items[items.Length - 1] = "" + (DFLog.events)int.Parse(items[index]);
-                            }
-                            catch { }
-                        }
-                        else if (line.StartsWith("MAG"))
-                        {
-                            Array.Resize(ref items, items.Length + 1);
-                            try
-                            {
-                                int fixme_addmagfield;
-                            }
-                            catch { }
-                        }
-
-                        DFItem item = new DFItem();
-                        try
-                        {
-                            item.lineno = lineno;
-
-                            if (items.Length > 0)
-                            {
-                                item.msgtype = items[0];
-                                item.items = items;
-
-                                if (line.StartsWith("GPS"))
-                                {
-                                    item.time = GetTimeGPS(line);
-                                }
-                                else
-                                {
-                                    if (logformat.ContainsKey(item.msgtype))
-                                    {
-                                        int indextimems = FindMessageOffset(item.msgtype, "TimeMS");
-
-                                        if (indextimems != -1)
-                                        {
-                                            item.timems = int.Parse(items[indextimems]);
-
-                                            item.time = gpsstarttime.AddMilliseconds(item.timems - msoffset);
-
-                                            lasttime = item.time;
-                                        }
-                                        else
-                                        {
-                                            item.time = lasttime;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        catch { }
-
-                        answer.Add(item);
+                        answer.Add(newitem);
+                    }
+                    catch (OutOfMemoryException ex)
+                    {
+                        log.Error(ex);
+                        CustomMessageBox.Show("out of memory");
+                        return answer;
                     }
                     catch { }
                 }
@@ -327,6 +232,118 @@ namespace MissionPlanner.Log
             log.Info("loaded log " + (GC.GetTotalMemory(false) / 1024.0 / 1024.0));
 
             return answer;
+        }
+
+        public static DFItem GetDFItemFromLine(string line, int lineno)
+        {
+
+            //line = line.Replace(",", ",");
+            //line = line.Replace(":", ":");
+
+            string[] items = line.Trim().Split(new char[] { ',', ':' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (line.StartsWith("FMT"))
+            {
+                FMTLine(line);
+            }
+            else if (line.StartsWith("GPS"))
+            {
+                // if (gpsstarttime == DateTime.MinValue)
+                {
+                    gpsstarttime = GetTimeGPS(line);
+                    lasttime = gpsstarttime;
+
+                    int indextimems = FindMessageOffset("GPS", "T");
+
+                    if (indextimems != -1)
+                    {
+                        try
+                        {
+                            msoffset = int.Parse(items[indextimems]);
+                        }
+                        catch { }
+                    }
+                }
+            }
+            else if (line.StartsWith("ERR"))
+            {
+                Array.Resize(ref items, items.Length + 2);
+                try
+                {
+                    int index = FindMessageOffset("ERR", "Subsys");
+                    if (index == -1)
+                    {
+                        throw new ArgumentNullException();
+                    }
+
+                    int index2 = FindMessageOffset("ERR", "ECode");
+                    if (index2 == -1)
+                    {
+                        throw new ArgumentNullException();
+                    }
+
+                    items[items.Length - 2] = "" + (DFLog.error_subsystem)int.Parse(items[index]);
+                }
+                catch { }
+            }
+            else if (line.StartsWith("EV"))
+            {
+                Array.Resize(ref items, items.Length + 1);
+                try
+                {
+                    int index = FindMessageOffset("EV", "Id");
+                    if (index == -1)
+                    {
+                        throw new ArgumentNullException();
+                    }
+
+                    items[items.Length - 1] = "" + (DFLog.events)int.Parse(items[index]);
+                }
+                catch { }
+            }
+            else if (line.StartsWith("MAG"))
+            {
+            }
+
+            DFItem item = new DFItem();
+            try
+            {
+                item.lineno = lineno;
+
+                if (items.Length > 0)
+                {
+                    item.msgtype = items[0];
+                    item.items = items;
+
+                    if (line.StartsWith("GPS"))
+                    {
+                        item.time = GetTimeGPS(line);
+                    }
+                    else
+                    {
+                        if (logformat.ContainsKey(item.msgtype))
+                        {
+                            int indextimems = FindMessageOffset(item.msgtype, "TimeMS");
+
+                            if (indextimems != -1)
+                            {
+                                item.timems = int.Parse(items[indextimems]);
+
+                                item.time = gpsstarttime.AddMilliseconds(item.timems - msoffset);
+
+                                lasttime = item.time;
+                            }
+                            else
+                            {
+                                item.time = lasttime;
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return item;
         }
 
         public static void FMTLine(string strLine)
@@ -338,7 +355,7 @@ namespace MissionPlanner.Log
                     strLine = strLine.Replace(", ", ",");
                     strLine = strLine.Replace(": ", ":");
 
-                    string[] items = strLine.Split(',', ':');
+                    string[] items = strLine.Trim().Split(',', ':');
 
                     string[] names = new string[items.Length - 5];
                     Array.ConstrainedCopy(items, 5, names, 0, names.Length);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Configuration;
 using System.IO;
 using System.Windows.Forms;
@@ -13,6 +13,7 @@ namespace MissionPlanner.Utilities
    public static class ParameterMetaDataRepository
    {
       private static XDocument _parameterMetaDataXML;
+      private static XDocument _parameterMetaDataXMLEn;
 
       /// <summary>
       /// Initializes a new instance of the <see cref="ParameterMetaDataRepository"/> class.
@@ -26,6 +27,22 @@ namespace MissionPlanner.Utilities
       public static void Reload()
       {
           string paramMetaDataXMLFileName = String.Format("{0}{1}{2}", Application.StartupPath, Path.DirectorySeparatorChar, ConfigurationManager.AppSettings["ParameterMetaDataXMLFileName"]);
+          string paramMetaDataXMLFileNameEn = paramMetaDataXMLFileName;
+          bool isNotEn = false;
+
+          switch (System.Globalization.CultureInfo.CurrentUICulture.Name)
+          {
+              case "zh-Hans":
+                  isNotEn = true;
+                  paramMetaDataXMLFileName = String.Format("{0}{1}{2}", Application.StartupPath, Path.DirectorySeparatorChar, "ParameterMetaData.zh-Hans.xml");
+                  break;
+              case "zh-CN":
+                  isNotEn = true;
+                  paramMetaDataXMLFileName = String.Format("{0}{1}{2}", Application.StartupPath, Path.DirectorySeparatorChar, "ParameterMetaData.zh-Hans.xml");
+                  break;
+              default:
+                  break;
+          }
 
           string paramMetaDataXMLFileNameBackup = String.Format("{0}{1}{2}", Application.StartupPath, Path.DirectorySeparatorChar, ConfigurationManager.AppSettings["ParameterMetaDataXMLFileNameBackup"]);
 
@@ -33,6 +50,12 @@ namespace MissionPlanner.Utilities
           {
               if (File.Exists(paramMetaDataXMLFileName))
                   _parameterMetaDataXML = XDocument.Load(paramMetaDataXMLFileName);
+              if (isNotEn)
+                  if (File.Exists(paramMetaDataXMLFileNameEn))
+                      _parameterMetaDataXMLEn = XDocument.Load(paramMetaDataXMLFileNameEn);
+                  else if (File.Exists(paramMetaDataXMLFileNameBackup))
+                      _parameterMetaDataXMLEn = XDocument.Load(paramMetaDataXMLFileNameBackup);
+
           }
           catch (Exception ex) { Console.WriteLine(ex.ToString()); } // Exception System.Xml.XmlException: Root element is missing.
 
@@ -55,7 +78,7 @@ namespace MissionPlanner.Utilities
       /// <param name="nodeKey">The node key.</param>
       /// <param name="metaKey">The meta key.</param>
       /// <returns></returns>
-      public static string GetParameterMetaData(string nodeKey, string metaKey)
+      public static string GetParameterMetaData(string nodeKey, string metaKey, string vechileType)
       {
           CheckLoad();
 
@@ -65,9 +88,7 @@ namespace MissionPlanner.Utilities
             // Either it will be pulled from a file in the ArduPlane hierarchy or the ArduCopter hierarchy
              try
              {
-                 MainV2.Firmwares selected = MainV2.comPort.MAV.cs.firmware;
-
-                 var element = _parameterMetaDataXML.Element("Params").Element(selected.ToString());
+                 var element = _parameterMetaDataXML.Element("Params").Element(vechileType);
                  if (element != null && element.HasElements)
                  {
                      var node = element.Element(nodeKey);
@@ -83,6 +104,28 @@ namespace MissionPlanner.Utilities
              }
              catch { } // Exception System.ArgumentException: '' is an invalid expanded name.
          }
+
+         if (_parameterMetaDataXMLEn != null)
+         {
+             try
+             {
+                 var element = _parameterMetaDataXMLEn.Element("Params").Element(vechileType);
+                 if (element != null && element.HasElements)
+                 {
+                     var node = element.Element(nodeKey);
+                     if (node != null && node.HasElements)
+                     {
+                         var metaValue = node.Element(metaKey);
+                         if (metaValue != null)
+                         {
+                             return metaValue.Value;
+                         }
+                     }
+                 }
+             }
+             catch { }
+         }
+
          return string.Empty;
       }
 
@@ -117,11 +160,23 @@ namespace MissionPlanner.Utilities
       /// </summary>
       /// <param name="nodeKey"></param>
       /// <returns></returns>
-      public static List<KeyValuePair<int, string>> GetParameterOptionsInt(string nodeKey)
+      public static List<KeyValuePair<int, string>> GetParameterOptionsInt(string nodeKey, string vechileType)
       {
           CheckLoad();
 
-          string availableValuesRaw = GetParameterMetaData(nodeKey, ParameterMetaDataConstants.Values);
+          string availableValuesRaw;
+
+          if (nodeKey == "FLTMODE1" && _parameterMetaDataXMLEn != null)
+          {
+              _parameterMetaDataXML = _parameterMetaDataXMLEn;
+              availableValuesRaw = GetParameterMetaData(nodeKey, ParameterMetaDataConstants.Values, vechileType);
+              Reload();
+          }
+          else
+          {
+              availableValuesRaw = GetParameterMetaData(nodeKey, ParameterMetaDataConstants.Values, vechileType);
+          }
+          
 
           string[] availableValues = availableValuesRaw.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
           if (availableValues.Any())
@@ -130,8 +185,12 @@ namespace MissionPlanner.Utilities
               // Add the values to the ddl
               foreach (string val in availableValues)
               {
-                  string[] valParts = val.Split(new[] { ':' });
-                  splitValues.Add(new KeyValuePair<int, string>(int.Parse(valParts[0].Trim()), (valParts.Length > 1) ? valParts[1].Trim() : valParts[0].Trim()));
+                  try
+                  {
+                      string[] valParts = val.Split(new[] { ':' });
+                      splitValues.Add(new KeyValuePair<int, string>(int.Parse(valParts[0].Trim()), (valParts.Length > 1) ? valParts[1].Trim() : valParts[0].Trim()));
+                  }
+                  catch { Console.WriteLine("Bad entry in param meta data: " + nodeKey); }
               };
 
               return splitValues;
@@ -140,11 +199,11 @@ namespace MissionPlanner.Utilities
           return new List<KeyValuePair<int, string>>();
       }
 
-      public static bool GetParameterRange(string nodeKey, ref double min, ref double max)
+      public static bool GetParameterRange(string nodeKey, ref double min, ref double max, string vechileType)
       {
           CheckLoad();
 
-          string rangeRaw = ParameterMetaDataRepository.GetParameterMetaData(nodeKey, ParameterMetaDataConstants.Range);
+          string rangeRaw = ParameterMetaDataRepository.GetParameterMetaData(nodeKey, ParameterMetaDataConstants.Range, vechileType);
 
           string[] rangeParts = rangeRaw.Split(new[] { ' ' });
           if (rangeParts.Count() == 2)

@@ -80,7 +80,7 @@ namespace MissionPlanner.Log
                     TXT_seriallog.AppendText("No logs to download");
                 }
             }
-            catch { CustomMessageBox.Show("Cannot get log list.","Error"); this.Close(); }
+            catch { CustomMessageBox.Show(Strings.ErrorLogList, Strings.ERROR); this.Close(); }
 
             status = serialstatus.Done;
         }
@@ -173,23 +173,11 @@ namespace MissionPlanner.Log
                 bw.Write(ms.ToArray());
             }
 
-            // read binary log to assci log
-            var temp1 = Log.BinaryLog.ReadLog(logfile);
+            // create ascii log
+            BinaryLog.ConvertBin(logfile, logfile + ".log");
 
-            // delete binary log file
-            //File.Delete(logfile);
-
+            //update the new filename
             logfile = logfile + ".log";
-
-            // write assci log
-            using (StreamWriter sw = new StreamWriter(logfile))
-            {
-                foreach (string line in temp1)
-                {
-                    sw.Write(line);
-                }
-                sw.Close();
-            }
 
             // get gps time of assci log
             DateTime logtime = DFLog.GetFirstGpsTime(logfile);
@@ -207,7 +195,7 @@ namespace MissionPlanner.Log
                     File.Move(logfile.Replace(".log", ""), newlogfilename.Replace(".log", ".bin"));
                     logfile = newlogfilename;
                 }
-                catch  { CustomMessageBox.Show("Failed to rename file " + logfile + "\nto " + newlogfilename, "Error"); }
+                catch  { CustomMessageBox.Show(Strings.ErrorRenameFile+ " " + logfile + "\nto " + newlogfilename, Strings.ERROR); }
             }
 
             return logfile;
@@ -258,6 +246,15 @@ namespace MissionPlanner.Log
                     var logname = GetLog((ushort)a);
 
                     CreateLog(logname);
+
+                    if (chk_droneshare.Checked)
+                    {
+                        try
+                        {
+                            Utilities.DroneApi.droneshare.doUpload(logname);
+                        }
+                        catch (Exception ex) { CustomMessageBox.Show("Droneshare upload failed " + ex.ToString()); }
+                    }
                 }
 
                 status = serialstatus.Done;
@@ -275,12 +272,20 @@ namespace MissionPlanner.Log
                 for (int i = 0; i < CHK_logs.CheckedItems.Count; ++i)
                 {
                     int a = (int)CHK_logs.CheckedItems[i];
+
+                    currentlog = a;
+
+                    var logname = GetLog((ushort)a);
+
+                    CreateLog(logname);
+
+                    if (chk_droneshare.Checked)
                     {
-                        currentlog = a;
-
-                        var logname = GetLog((ushort)a);
-
-                        CreateLog(logname);
+                        try
+                        {
+                            Utilities.DroneApi.droneshare.doUpload(logname);
+                        }
+                        catch (Exception ex) { CustomMessageBox.Show("Droneshare upload failed " + ex.ToString()); }
                     }
                 }
 
@@ -314,7 +319,7 @@ namespace MissionPlanner.Log
                     updateDisplay();
                     CHK_logs.Items.Clear();
                 }
-                catch (Exception ex) { CustomMessageBox.Show(ex.Message, "Error"); }
+                catch (Exception ex) { CustomMessageBox.Show(ex.Message, Strings.ERROR); }
             }
         }
 
@@ -410,8 +415,6 @@ namespace MissionPlanner.Log
 
             if (File.Exists(ofd.FileName))
             {
-                var log = BinaryLog.ReadLog(ofd.FileName);
-
                 SaveFileDialog sfd = new SaveFileDialog();
                 sfd.Filter = "log|*.log";
 
@@ -419,14 +422,14 @@ namespace MissionPlanner.Log
 
                 if (res == System.Windows.Forms.DialogResult.OK)
                 {
-                    StreamWriter sw = new StreamWriter(sfd.OpenFile());
-                    foreach (string line in log)
-                    {
-                        sw.Write(line);
-                    }
-                    sw.Close();
+                    BinaryLog.ConvertBin(ofd.FileName, sfd.FileName);
                 }
             }
+        }
+
+        private void chk_droneshare_CheckedChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }

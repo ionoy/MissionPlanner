@@ -48,7 +48,6 @@ namespace MissionPlanner
             System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);
 
             ServicePointManager.DefaultConnectionLimit = 10;
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3;
 
             System.Windows.Forms.Application.ThreadException += Application_ThreadException;
 
@@ -84,6 +83,9 @@ namespace MissionPlanner
             GMap.NET.MapProviders.GMapProvider.WebProxy = WebRequest.GetSystemWebProxy();
             GMap.NET.MapProviders.GMapProvider.WebProxy.Credentials = CredentialCache.DefaultCredentials;
 
+            WebRequest.DefaultWebProxy = WebRequest.GetSystemWebProxy();
+            WebRequest.DefaultWebProxy.Credentials = CredentialCache.DefaultNetworkCredentials;
+
             string name = "Mission Planner";
 
             if (File.Exists(Application.StartupPath + Path.DirectorySeparatorChar + "logo.txt"))
@@ -104,7 +106,7 @@ namespace MissionPlanner
                 System.Configuration.ConfigurationManager.AppSettings["UpdateLocationVersion"] = "";
             }
 
-            CleanupFiles();
+            CleanupFiles();  
 
             //fontgen.dowork();
 
@@ -187,8 +189,8 @@ namespace MissionPlanner
 
          //   return;
              
-            if (Debugger.IsAttached)
-                ThemeManager.doxamlgen();
+          //  if (Debugger.IsAttached)
+          //      ThemeManager.doxamlgen();
 
             if (File.Exists("simple.txt"))
             {

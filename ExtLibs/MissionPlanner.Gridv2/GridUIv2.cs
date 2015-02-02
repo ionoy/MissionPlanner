@@ -36,11 +36,7 @@ namespace MissionPlanner
         List<PointLatLng> list = new List<PointLatLng>();
         List<PointLatLngAlt> grid;
 
-        mode currentmode = mode.panmode;
-
-        //
-        camerainfo camera;
-        
+        mode currentmode = mode.panmode;       
 
         Dictionary<string, camerainfo> cameras = new Dictionary<string, camerainfo>();
 
@@ -296,7 +292,7 @@ namespace MissionPlanner
 
             boxpoly.Points.ForEach(x => { newlist.Add(x); });
 
-            grid = Grid.CreateGrid(newlist, (double)NUM_altitude.Value, (double)NUM_Distance, (double)NUM_spacing, (double)NUM_angle.Value, 0, 0, Grid.StartPosition.Home, false);
+            grid = Grid.CreateGrid(newlist, (double)NUM_altitude.Value, (double)NUM_Distance, (double)NUM_spacing, (double)NUM_angle.Value, 0, 0, Grid.StartPosition.Home, false, 0);
 
             List<PointLatLng> list2 = new List<PointLatLng>();
 

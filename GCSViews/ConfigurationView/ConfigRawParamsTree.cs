@@ -216,7 +216,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
             if (!MainV2.comPort.BaseStream.IsOpen)
                 return;
 
-            if (DialogResult.OK == CustomMessageBox.Show("Update Params\nDON'T DO THIS IF YOU ARE IN THE AIR\n", "Error", MessageBoxButtons.OKCancel))
+            if (DialogResult.OK == CustomMessageBox.Show(Strings.WarningUpdateParamList, Strings.ERROR, MessageBoxButtons.OKCancel))
             {
                 ((Control)sender).Enabled = false;
 
@@ -227,7 +227,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                 catch (Exception ex)
                 {
                     log.Error("Exception getting param list", ex);
-                    CustomMessageBox.Show("Error: getting param list", "Error");
+                    CustomMessageBox.Show(Strings.ErrorReceivingParams, Strings.ERROR);
                 }
 
 
@@ -334,31 +334,18 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                 data.Value = ((float)MainV2.comPort.MAV.param[value]).ToString();
                 try
                 {
-                    string metaDataDescription = ParameterMetaDataRepository.GetParameterMetaData(value, ParameterMetaDataConstants.Description);
+                    string metaDataDescription = ParameterMetaDataRepository.GetParameterMetaData(value, ParameterMetaDataConstants.Description, MainV2.comPort.MAV.cs.firmware.ToString());
                     if (!String.IsNullOrEmpty(metaDataDescription))
                     {
-                        string range = ParameterMetaDataRepository.GetParameterMetaData(value, ParameterMetaDataConstants.Range);
-                        string options = ParameterMetaDataRepository.GetParameterMetaData(value, ParameterMetaDataConstants.Values);
-                        string units = ParameterMetaDataRepository.GetParameterMetaData(value, ParameterMetaDataConstants.Units);
+                        string range = ParameterMetaDataRepository.GetParameterMetaData(value, ParameterMetaDataConstants.Range, MainV2.comPort.MAV.cs.firmware.ToString());
+                        string options = ParameterMetaDataRepository.GetParameterMetaData(value, ParameterMetaDataConstants.Values, MainV2.comPort.MAV.cs.firmware.ToString());
+                        string units = ParameterMetaDataRepository.GetParameterMetaData(value, ParameterMetaDataConstants.Units, MainV2.comPort.MAV.cs.firmware.ToString());
 
                         data.unit = (units);
                         data.range =( range + options.Replace(","," "));
                         data.desc = (metaDataDescription);
 
                     }
-                    else if (tooltips[value] != null)
-                    {
-                        //Params.Rows[Params.RowCount - 1].Cells[Command.Index].ToolTipText = ((paramsettings)tooltips[value]).desc;
-                        //Params.Rows[Params.RowCount - 1].Cells[RawValue.Index].ToolTipText = ((paramsettings)tooltips[value]).desc;
-                       // Params.Rows[Params.RowCount - 1].Cells[Value.Index].ToolTipText = ((paramsettings)tooltips[value]).desc;
-
-                        //  Params.Rows[Params.RowCount - 1].Cells[Desc.Index].Value = "Old: "+((paramsettings)tooltips[value]).desc;
-
-                        //Params.Rows[Params.RowCount - 1].Cells[Default.Index].Value = ((paramsettings)tooltips[value]).normalvalue;
-                        //Params.Rows[Params.RowCount - 1].Cells[mavScale.Index].Value = ((paramsettings)tooltips[value]).scale;
-                        //Params.Rows[Params.RowCount - 1].Cells[Value.Index].Value = float.Parse(Params.Rows[Params.RowCount - 1].Cells[RawValue.Index].Value.ToString()) / float.Parse(Params.Rows[Params.RowCount - 1].Cells[mavScale.Index].Value.ToString());
-                    }
-
                     
                     if (lastroot.root == split[0])
                     {
@@ -403,7 +390,6 @@ namespace MissionPlanner.GCSViews.ConfigurationView
 
             CMB_paramfiles.Enabled = false;
             BUT_paramfileload.Enabled = false;
-
 
             System.Threading.ThreadPool.QueueUserWorkItem(updatedefaultlist);
 
@@ -505,12 +491,16 @@ namespace MissionPlanner.GCSViews.ConfigurationView
         {
             if (CustomMessageBox.Show("Reset all parameters to default\nAre you sure!!", "Reset", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
-                MainV2.comPort.setParam(new string[] {"FORMAT_VERSION","SYSID_SW_MREV"}, 0);
-                System.Threading.Thread.Sleep(1000);
-                MainV2.comPort.doReboot(false);
-                MainV2.comPort.BaseStream.Close();
+                try
+                {
+                    MainV2.comPort.setParam(new string[] { "FORMAT_VERSION", "SYSID_SW_MREV" }, 0);
+                    System.Threading.Thread.Sleep(1000);
+                    MainV2.comPort.doReboot(false);
+                    MainV2.comPort.BaseStream.Close();
 
-                CustomMessageBox.Show("Your board is now rebooting, You will be required to reconnect to the autopilot.");
+                    CustomMessageBox.Show("Your board is now rebooting, You will be required to reconnect to the autopilot.");
+                }
+                catch { CustomMessageBox.Show(Strings.ErrorCommunicating, Strings.ERROR); }
             }
         }
 
@@ -531,7 +521,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                 }
                 catch { CustomMessageBox.Show("Bad number"); e.Cancel = true; return; }
 
-                if (ParameterMetaDataRepository.GetParameterRange(((data)e.RowObject).paramname, ref min, ref max))
+                if (ParameterMetaDataRepository.GetParameterRange(((data)e.RowObject).paramname, ref min, ref max, MainV2.comPort.MAV.cs.firmware.ToString()))
                 {
                     if (newvalue > max || newvalue < min)
                     {

@@ -23,6 +23,16 @@
               <param index="6">Empty</param>
               <param index="7">Empty</param>
             </entry>
+            <entry name="MAV_CMD_DO_GRIPPER" value="211">
+              <description>Mission command to operate EPM gripper</description>
+              <param index="1">gripper number (a number from 1 to max number of grippers on the vehicle)</param>
+              <param index="2">gripper action (0=release, 1=grab. See GRIPPER_ACTIONS enum)</param>
+              <param index="3">Empty</param>
+              <param index="4">Empty</param>
+              <param index="5">Empty</param>
+              <param index="6">Empty</param>
+              <param index="7">Empty</param>
+            </entry>
           </enum>
 	  
 	  	<!--  AP_Limits Enums -->
@@ -75,15 +85,26 @@
       </entry>
     </enum>
 
+    <!-- gripper action enum -->
+    <enum name="GRIPPER_ACTIONS">
+      <description>Gripper actions.</description>
+      <entry name="GRIPPER_ACTION_RELEASE" value="0">
+        <description>gripper release of cargo</description>
+      </entry>
+      <entry name="GRIPPER_ACTION_GRAB" value="1">
+        <description>gripper grabs onto cargo</description>
+      </entry>
+    </enum>
+
     <!-- Camera event types -->
     <enum name="CAMERA_STATUS_TYPES">
-        <entry name="HEARTBEAT"  value="0"><description>Camera heartbeat, announce camera component ID at 1hz</description></entry>
-        <entry name="TRIGGER"    value="1"><description>Camera image triggered</description></entry>
-        <entry name="DISCONNECT" value="2"><description>Camera connection lost</description></entry>
-        <entry name="ERROR"      value="3"><description>Camera unknown error</description></entry>
-        <entry name="LOWBATT"    value="4"><description>Camera battery low. Parameter p1 shows reported voltage</description></entry>
-        <entry name="LOWSTORE"   value="5"><description>Camera storage low. Parameter p1 shows reported shots remaining</description></entry>
-        <entry name="LOWSTOREV"  value="6"><description>Camera storage low. Parameter p1 shows reported video minutes remaining</description></entry>
+        <entry name="CAMERA_STATUS_TYPE_HEARTBEAT"  value="0"><description>Camera heartbeat, announce camera component ID at 1hz</description></entry>
+        <entry name="CAMERA_STATUS_TYPE_TRIGGER"    value="1"><description>Camera image triggered</description></entry>
+        <entry name="CAMERA_STATUS_TYPE_DISCONNECT" value="2"><description>Camera connection lost</description></entry>
+        <entry name="CAMERA_STATUS_TYPE_ERROR"      value="3"><description>Camera unknown error</description></entry>
+        <entry name="CAMERA_STATUS_TYPE_LOWBATT"    value="4"><description>Camera battery low. Parameter p1 shows reported voltage</description></entry>
+        <entry name="CAMERA_STATUS_TYPE_LOWSTORE"   value="5"><description>Camera storage low. Parameter p1 shows reported shots remaining</description></entry>
+        <entry name="CAMERA_STATUS_TYPE_LOWSTOREV"  value="6"><description>Camera storage low. Parameter p1 shows reported video minutes remaining</description></entry>
     </enum>
 
     <!-- camera feedback flags, a little bit of future-proofing -->
@@ -194,9 +215,9 @@
 	    <description>Message with some status from APM to GCS about camera or antenna mount</description>
 	    <field name="target_system" type="uint8_t">System ID</field>
 	    <field name="target_component" type="uint8_t">Component ID</field>
-	    <field name="pointing_a" type="int32_t">pitch(deg*100) or lat, depending on mount mode</field>
-	    <field name="pointing_b" type="int32_t">roll(deg*100) or lon depending on mount mode</field>
-	    <field name="pointing_c" type="int32_t">yaw(deg*100) or alt (in cm) depending on mount mode</field>
+	    <field name="pointing_a" type="int32_t">pitch(deg*100)</field>
+	    <field name="pointing_b" type="int32_t">roll(deg*100)</field>
+	    <field name="pointing_c" type="int32_t">yaw(deg*100)</field>
 	  </message>
 
 	  <!-- geo-fence messages -->
@@ -436,6 +457,26 @@
         <field name="yaw"       type="float"   >Camera Yaw (earth frame, degrees, 0-360, true)</field>   <!-- initially only supporting fixed cameras, in future we'll need feedback messages from the gimbal so we can include that offset here -->
         <field name="foc_len"   type="float"   >Focal Length (mm)</field> <!-- per-image to support zooms. Zero means fixed focal length or unknown. Should be true mm, not scaled to 35mm film equivalent -->
         <field name="flags"     type="uint8_t" >See CAMERA_FEEDBACK_FLAGS enum for definition of the bitmask</field> <!-- future proofing -->
+    </message>
+
+    <message name="BATTERY2" id="181">
+      <description>2nd Battery status</description>
+      <field type="uint16_t" name="voltage">voltage in millivolts</field>
+      <field type="int16_t" name="current_battery">Battery current, in 10*milliamperes (1 = 10 milliampere), -1: autopilot does not measure the current</field>
+    </message>
+
+    <message name="AHRS3" id="182">
+      <description>Status of third AHRS filter if available. This is for ANU research group (Ali and Sean)</description>
+      <field type="float" name="roll">Roll angle (rad)</field>
+      <field type="float" name="pitch">Pitch angle (rad)</field>
+      <field type="float" name="yaw">Yaw angle (rad)</field>
+      <field type="float" name="altitude">Altitude (MSL)</field>
+      <field type="int32_t" name="lat">Latitude in degrees * 1E7</field>
+      <field type="int32_t" name="lng">Longitude in degrees * 1E7</field>
+      <field type="float" name="v1">test variable1</field>
+      <field type="float" name="v2">test variable2</field>
+      <field type="float" name="v3">test variable3</field>
+      <field type="float" name="v4">test variable4</field>
     </message>
 
      </messages>

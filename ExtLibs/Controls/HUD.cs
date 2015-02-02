@@ -230,12 +230,10 @@ namespace MissionPlanner.Controls
                     throw new Exception("Bad data type");
                 }
             }
-            public object src { get; set; }
+            public static object src { get; set; }
         }
 
         public Hashtable CustomItems = new Hashtable();
-        
-
 
         public bool bgon = true;
         public bool hudon = true;
@@ -246,7 +244,7 @@ namespace MissionPlanner.Controls
         Color _hudcolor = Color.White;
         Pen whitePen = new Pen(Color.White, 2);
 
-        public Image bgimage { set { while (inOnPaint) { } if (_bgimage != null) _bgimage.Dispose(); try { _bgimage = (Image)value.Clone(); } catch { _bgimage = null; } this.Invalidate(); } }
+        public Image bgimage { set { while (inOnPaint) { System.Threading.Thread.Sleep(1); } if (_bgimage != null) _bgimage.Dispose(); try { _bgimage = (Image)value; } catch { _bgimage = null; } this.Invalidate(); } }
         Image _bgimage;
 
         // move these global as they rarely change - reduce GC
@@ -457,7 +455,9 @@ namespace MissionPlanner.Controls
             if (opengl)
             {
                 GL.ClearColor(color);
-            } else 
+
+            }
+            else
             {
                 graphicsObjectGDIP.Clear(color);
             }
@@ -520,6 +520,32 @@ namespace MissionPlanner.Controls
             }
         }
 
+        public static Bitmap ResizeImage(Image image, int width, int height)
+        {
+            var destRect = new Rectangle(0, 0, width, height);
+            var destImage = new Bitmap(width, height);
+
+            destImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+
+            using (var graphics = Graphics.FromImage(destImage))
+            {
+                graphics.CompositingMode = CompositingMode.SourceCopy;
+                graphics.CompositingQuality = CompositingQuality.HighSpeed;
+                graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
+                graphics.SmoothingMode = SmoothingMode.HighSpeed;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighSpeed;
+
+                using (var wrapMode = new ImageAttributes())
+                {
+                    wrapMode.ClearOutputChannelColorProfile();
+                    wrapMode.SetWrapMode(WrapMode.TileFlipXY);
+                    graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
+                }
+            }
+
+            return destImage;
+        }
+
         int texture;
         Bitmap bitmap = new Bitmap(512,512);
 
@@ -531,16 +557,7 @@ namespace MissionPlanner.Controls
                     return;
                 //bitmap = new Bitmap(512,512);
 
-                using (Graphics graphics = Graphics.FromImage(bitmap))
-                {
-                    graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
-                    graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
-                    graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighSpeed;
-                    graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.SingleBitPerPixelGridFit;
-                    //draw the image into the target bitmap 
-                    graphics.DrawImage(img, 0, 0, bitmap.Width, bitmap.Height);
-                }
-
+                bitmap = ResizeImage(img, bitmap.Width, bitmap.Height);
 
                 GL.DeleteTexture(texture);
 
@@ -843,7 +860,16 @@ namespace MissionPlanner.Controls
 
                 graphicsObjectGDIP.InterpolationMode = InterpolationMode.Bilinear;
 
-                graphicsObject.Clear(Color.Transparent);
+                try
+                {
+                    graphicsObject.Clear(Color.Transparent);
+                }
+                catch
+                {
+                    // this is the first posible opengl call
+                    // in vmware fusion on mac, this fails, so switch back to legacy
+                    opengl = false;
+                }
 
                 if (_bgimage != null)
                 {

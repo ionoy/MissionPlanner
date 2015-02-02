@@ -81,6 +81,11 @@ namespace MissionPlanner
             public string startfrom;
             public bool autotakeoff;
             public bool autotakeoff_RTL;
+            public bool alternateLanes;
+            public decimal minlaneseparation;
+
+            public bool internals;
+            public bool footprints;
             public bool advanced;
 
             public bool trigdist;
@@ -123,6 +128,7 @@ namespace MissionPlanner
 
             // set and angle that is good
             NUM_angle.Value = (decimal)((getAngleOfLongestSide(list) + 360) % 360);
+            TXT_headinghold.Text = (Math.Round(NUM_angle.Value)).ToString();
         }
 
         private void GridUI_Load(object sender, EventArgs e)
@@ -139,6 +145,9 @@ namespace MissionPlanner
             //CHK_advanced_CheckedChanged(null, null);
 
             TRK_zoom.Value = (float)map.Zoom;
+
+            label1.Text += " (" + CurrentState.DistanceUnit+")";
+            label24.Text += " (" + CurrentState.SpeedUnit + ")";
         }
 
         private void GridUI_Resize(object sender, EventArgs e)
@@ -208,6 +217,8 @@ namespace MissionPlanner
             CHK_toandland.Checked = griddata.autotakeoff;
             CHK_toandland_RTL.Checked = griddata.autotakeoff_RTL;
 
+            CHK_internals.Checked = griddata.internals;
+            CHK_footprints.Checked = griddata.footprints;
             CHK_advanced.Checked = griddata.advanced;
 
             rad_trigdist.Checked = griddata.trigdist;
@@ -216,8 +227,10 @@ namespace MissionPlanner
 
             // Copter Settings
             NUM_copter_delay.Value = griddata.copter_delay;
-            CHK_copter_headinghold.Checked = griddata.copter_headinghold_chk;
-            NUM_copter_headinghold.Value = griddata.copter_headinghold;
+            //CHK_copter_headinghold.Checked = griddata.copter_headinghold_chk; //UNcomment after adding headinghold offset function
+
+            // Plane Settings
+            NUM_Lane_Dist.Value = griddata.minlaneseparation;
         }
 
         GridData savegriddata()
@@ -233,6 +246,7 @@ namespace MissionPlanner
 
             griddata.usespeed = CHK_usespeed.Checked;
 
+
             griddata.dist = NUM_Distance.Value;
             griddata.overshoot1 = NUM_overshoot.Value;
             griddata.overshoot2 = NUM_overshoot2.Value;
@@ -245,6 +259,8 @@ namespace MissionPlanner
             griddata.autotakeoff = CHK_toandland.Checked;
             griddata.autotakeoff_RTL = CHK_toandland_RTL.Checked;
 
+            griddata.internals = CHK_internals.Checked;
+            griddata.footprints = CHK_footprints.Checked;
             griddata.advanced = CHK_advanced.Checked;
 
             griddata.trigdist = rad_trigdist.Checked;
@@ -255,6 +271,9 @@ namespace MissionPlanner
             griddata.copter_delay = NUM_copter_delay.Value;
             griddata.copter_headinghold_chk = CHK_copter_headinghold.Checked;
             griddata.copter_headinghold = NUM_spacing.Value;
+
+            // Plane Settings
+            griddata.minlaneseparation = NUM_Lane_Dist.Value;
 
             return griddata;
         }
@@ -282,6 +301,8 @@ namespace MissionPlanner
                 loadsetting("grid_autotakeoff", CHK_toandland);
                 loadsetting("grid_autotakeoff_RTL", CHK_toandland_RTL);
 
+                loadsetting("grid_internals", CHK_internals);
+                loadsetting("grid_footprints", CHK_footprints);
                 loadsetting("grid_advanced", CHK_advanced);
 
                 // Should probably be saved as one setting, and us logic
@@ -294,32 +315,39 @@ namespace MissionPlanner
 
                 // Copter Settings
                 loadsetting("grid_copter_delay", NUM_copter_delay);
-                loadsetting("grid_copter_headinghold_chk", CHK_copter_headinghold);
-                loadsetting("grid_copter_headinghold", NUM_copter_headinghold);
+                //loadsetting("grid_copter_headinghold_chk", CHK_copter_headinghold);
+
+                // Plane Settings
+                loadsetting("grid_min_lane_separation", NUM_Lane_Dist);
             }
         }
 
         void loadsetting(string key, Control item)
         {
-            if (plugin.Host.config.ContainsKey(key))
+            // soft fail on bad param
+            try
             {
-                if (item is NumericUpDown)
+                if (plugin.Host.config.ContainsKey(key))
                 {
-                    ((NumericUpDown)item).Value = decimal.Parse(plugin.Host.config[key].ToString());
-                }
-                else if (item is ComboBox)
-                {
-                    ((ComboBox)item).Text = plugin.Host.config[key].ToString();
-                }
-                else if (item is CheckBox)
-                {
-                    ((CheckBox)item).Checked = bool.Parse(plugin.Host.config[key].ToString());
-                }
-                else if (item is RadioButton)
-                {
-                    ((RadioButton)item).Checked = bool.Parse(plugin.Host.config[key].ToString());
+                    if (item is NumericUpDown)
+                    {
+                        ((NumericUpDown)item).Value = decimal.Parse(plugin.Host.config[key].ToString());
+                    }
+                    else if (item is ComboBox)
+                    {
+                        ((ComboBox)item).Text = plugin.Host.config[key].ToString();
+                    }
+                    else if (item is CheckBox)
+                    {
+                        ((CheckBox)item).Checked = bool.Parse(plugin.Host.config[key].ToString());
+                    }
+                    else if (item is RadioButton)
+                    {
+                        ((RadioButton)item).Checked = bool.Parse(plugin.Host.config[key].ToString());
+                    }
                 }
             }
+            catch { }
         }
 
         void savesettings()
@@ -343,7 +371,10 @@ namespace MissionPlanner
             plugin.Host.config["grid_autotakeoff"] = CHK_toandland.Checked.ToString();
             plugin.Host.config["grid_autotakeoff_RTL"] = CHK_toandland_RTL.Checked.ToString();
 
+            plugin.Host.config["grid_internals"] = CHK_internals.Checked.ToString();
+            plugin.Host.config["grid_footprints"] = CHK_footprints.Checked.ToString();
             plugin.Host.config["grid_advanced"] = CHK_advanced.Checked.ToString();
+
             plugin.Host.config["grid_trigdist"] = rad_trigdist.Checked.ToString();
             plugin.Host.config["grid_digicam"] = rad_digicam.Checked.ToString();
             plugin.Host.config["grid_repeatservo"] = rad_repeatservo.Checked.ToString();
@@ -351,7 +382,9 @@ namespace MissionPlanner
             // Copter Settings
             plugin.Host.config["grid_copter_delay"] = NUM_copter_delay.Value.ToString();
             plugin.Host.config["grid_copter_headinghold_chk"] = CHK_copter_headinghold.Checked.ToString();
-            plugin.Host.config["grid_copter_headinghold"] = NUM_copter_headinghold.Value.ToString();
+
+            // Plane Settings
+            plugin.Host.config["grid_min_lane_separation"] = NUM_Lane_Dist.Value.ToString();
         }
 
         private void xmlcamera(bool write, string filename = "cameras.xml")
@@ -481,7 +514,7 @@ namespace MissionPlanner
 
             // new grid system test
 
-            grid = Grid.CreateGrid(list, (double)NUM_altitude.Value, (double)NUM_Distance.Value, (double)NUM_spacing.Value, (double)NUM_angle.Value, (double)NUM_overshoot.Value, (double)NUM_overshoot2.Value, (Grid.StartPosition)Enum.Parse(typeof(Grid.StartPosition), CMB_startfrom.Text), false);
+            grid = Grid.CreateGrid(list, CurrentState.fromDistDisplayUnit((double)NUM_altitude.Value), (double)NUM_Distance.Value, (double)NUM_spacing.Value, (double)NUM_angle.Value, (double)NUM_overshoot.Value, (double)NUM_overshoot2.Value, (Grid.StartPosition)Enum.Parse(typeof(Grid.StartPosition), CMB_startfrom.Text), false, (float)NUM_Lane_Dist.Value);
 
             List<PointLatLng> list2 = new List<PointLatLng>();
 
@@ -635,32 +668,36 @@ namespace MissionPlanner
                 lbl_footprint.Text = TXT_fovH.Text + " x " + TXT_fovV.Text + " m";
             }
 
+            double flyspeedms = CurrentState.fromSpeedDisplayUnit((double)NUM_UpDownFlySpeed.Value);
+
             lbl_pictures.Text = images.ToString();
             lbl_strips.Text = ((int)(strips / 2)).ToString();
-            double seconds = ((routetotal * 1000.0) / ((double)NUM_UpDownFlySpeed.Value * 0.8));
+            double seconds = ((routetotal * 1000.0) / ((flyspeedms) * 0.8));
             // reduce flying speed by 20 %
             lbl_flighttime.Text = secondsToNice(seconds);
-            seconds = ((routetotal * 1000.0) / ((double)NUM_UpDownFlySpeed.Value));
-            lbl_photoevery.Text = secondsToNice(((double)NUM_spacing.Value / (double)NUM_UpDownFlySpeed.Value));
+            seconds = ((routetotal * 1000.0) / (flyspeedms));
+            lbl_photoevery.Text = secondsToNice(((double)NUM_spacing.Value / flyspeedms));
             map.HoldInvalidation = false;
             if (!isMouseDown)
                 map.ZoomAndCenterMarkers("routes");
+
+            CalcHeadingHold();
         }
 
         private void AddWP(double Lng, double Lat, double Alt)
         {
             if (CHK_copter_headinghold.Checked)
             {
-                plugin.Host.AddWPtoList(MAVLink.MAV_CMD.CONDITION_YAW, (int)NUM_copter_headinghold.Value, 0, 0, 0, 0, 0, 0);
+                plugin.Host.AddWPtoList(MAVLink.MAV_CMD.CONDITION_YAW, Convert.ToInt32(TXT_headinghold.Text), 0, 0, 0, 0, 0, 0);
             }
 
-            if ((int)NUM_copter_delay.Value > 0)
+            if (NUM_copter_delay.Value > 0)
             {
-                plugin.Host.AddWPtoList(MAVLink.MAV_CMD.WAYPOINT, (int)NUM_copter_delay.Value, 0, 0, 0, Lng, Lat, Alt * MainV2.comPort.MAV.cs.multiplierdist);
+                plugin.Host.AddWPtoList(MAVLink.MAV_CMD.WAYPOINT, (double)NUM_copter_delay.Value, 0, 0, 0, Lng, Lat, Alt * CurrentState.multiplierdist);
             }
             else
             {
-                plugin.Host.AddWPtoList(MAVLink.MAV_CMD.WAYPOINT, 0, 0, 0, 0, Lng, Lat, (int)(Alt * MainV2.comPort.MAV.cs.multiplierdist));
+                plugin.Host.AddWPtoList(MAVLink.MAV_CMD.WAYPOINT, 0, 0, 0, 0, Lng, Lat, (int)(Alt * CurrentState.multiplierdist));
             }
         }
 
@@ -825,6 +862,34 @@ namespace MissionPlanner
 
             }
             catch { return; }
+        }
+
+        private void CalcHeadingHold()
+        {
+            int previous = (int)Math.Round(Convert.ToDecimal(((UpDownBase)NUM_angle).Text)); //((UpDownBase)sender).Text
+            int current = (int)Math.Round(NUM_angle.Value);
+
+            int change = current - previous;
+            
+            if (change > 0) // Positive change
+            {
+                int val = Convert.ToInt32(TXT_headinghold.Text) + change;
+                if (val > 359) 
+                {
+                    val = val - 360;
+                }
+                TXT_headinghold.Text = val.ToString();
+            }
+
+            if (change < 0) // Negative change
+            {
+                int val = Convert.ToInt32(TXT_headinghold.Text) + change;
+                if (val < 0)
+                {
+                    val = val + 360;
+                }
+                TXT_headinghold.Text = val.ToString();
+            }
         }
 
         // Map Operators
@@ -1067,6 +1132,93 @@ namespace MissionPlanner
             }
         }
 
+        private void CHK_copter_headinghold_CheckedChanged(object sender, EventArgs e)
+        {
+            if (CHK_copter_headinghold.Checked)
+            {
+                TXT_headinghold.Enabled = true;
+                CHK_copter_headingholdlock.Enabled = true;
+                CHK_copter_headingholdlock.Checked = false;
+                BUT_headingholdplus.Enabled = true;
+                BUT_headingholdminus.Enabled = true;
+            }
+            else
+            {
+                TXT_headinghold.Enabled = false;
+                CHK_copter_headingholdlock.Enabled = false;
+                BUT_headingholdplus.Enabled = false;
+                BUT_headingholdminus.Enabled = false;
+            }
+        }
+
+        private void CHK_copter_headingholdlock_CheckedChanged(object sender, EventArgs e)
+        {
+            if (CHK_copter_headingholdlock.Checked)
+            {
+                TXT_headinghold.ReadOnly = false;
+            }
+            else
+            {
+                TXT_headinghold.ReadOnly = true;
+                TXT_headinghold.Text = Decimal.Round(NUM_angle.Value).ToString();
+            }
+        }
+
+        private void BUT_headingholdplus_Click(object sender, EventArgs e)
+        {
+            int previous = Convert.ToInt32(TXT_headinghold.Text);
+            if(!CHK_copter_headingholdlock.Checked)
+            {                
+                if (previous + 180 > 359)
+                {
+                    TXT_headinghold.Text = (previous - 180).ToString();
+                }
+                else
+                {
+                    TXT_headinghold.Text = (previous + 180).ToString();
+                }
+            }
+            else
+            {
+                if (previous + 1 > 359)
+                {
+                    TXT_headinghold.Text = (previous - 359).ToString();
+                }
+                else
+                {
+                    TXT_headinghold.Text = (previous + 1).ToString();
+                }
+            }
+        }
+
+        private void BUT_headingholdminus_Click(object sender, EventArgs e)
+        {
+            int previous = Convert.ToInt32(TXT_headinghold.Text);
+            
+            if (!CHK_copter_headingholdlock.Checked)
+            {
+                if (previous - 180 < 0)
+                {
+                    TXT_headinghold.Text = (previous + 180).ToString();
+                }
+                else
+                {
+                    TXT_headinghold.Text = (previous - 180).ToString();
+                }
+            }
+            else
+            {
+                if (previous - 1 < 0)
+                {
+                    TXT_headinghold.Text = (previous + 359).ToString();
+                }
+                else
+                {
+                    TXT_headinghold.Text = (previous - 1).ToString();
+                }
+            }
+        }
+
         private void BUT_samplephoto_Click(object sender, EventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
@@ -1189,11 +1341,11 @@ namespace MissionPlanner
                 {
                     if (plugin.Host.cs.firmware == MainV2.Firmwares.ArduCopter2)
                     {
-                        plugin.Host.AddWPtoList(MAVLink.MAV_CMD.TAKEOFF, 0, 0, 0, 0, 0, 0, (int)(30 * MainV2.comPort.MAV.cs.multiplierdist));
+                        plugin.Host.AddWPtoList(MAVLink.MAV_CMD.TAKEOFF, 0, 0, 0, 0, 0, 0, (int)(30 * CurrentState.multiplierdist));
                     }
                     else
                     {
-                        plugin.Host.AddWPtoList(MAVLink.MAV_CMD.TAKEOFF, 20, 0, 0, 0, 0, 0, (int)(30 * MainV2.comPort.MAV.cs.multiplierdist));
+                        plugin.Host.AddWPtoList(MAVLink.MAV_CMD.TAKEOFF, 20, 0, 0, 0, 0, 0, (int)(30 * CurrentState.multiplierdist));
                     }
                 }
 
@@ -1296,6 +1448,12 @@ namespace MissionPlanner
             }
 
             return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        private void NUM_Lane_Dist_ValueChanged(object sender, EventArgs e)
+        {
+            // doCalc
+            domainUpDown1_ValueChanged(sender, e);
         }
     }
 }

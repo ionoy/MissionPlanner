@@ -37,17 +37,17 @@ namespace MissionPlanner
         {
             InitializeComponent();
 
-            //if (System.Diagnostics.Debugger.IsAttached) {
+            if (System.Diagnostics.Debugger.IsAttached) {
             try
             {
-                //Controls.OpenGLtest ogl = new Controls.OpenGLtest();
+                Controls.OpenGLtest2 ogl = new Controls.OpenGLtest2();
 
-                //this.Controls.Add(ogl);
+                this.Controls.Add(ogl);
 
-                //ogl.Dock = DockStyle.Fill;
+                ogl.Dock = DockStyle.Fill;
             }
             catch { }
-           // }
+            }
 
             MissionPlanner.Utilities.Tracking.AddPage(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType.ToString(), System.Reflection.MethodBase.GetCurrentMethod().Name);
         }
@@ -1056,8 +1056,6 @@ namespace MissionPlanner
 
             if (File.Exists(ofd.FileName))
             {
-                var log = Log.BinaryLog.ReadLog(ofd.FileName);
-
                 SaveFileDialog sfd = new SaveFileDialog();
                 sfd.Filter = "log|*.log";
 
@@ -1065,12 +1063,7 @@ namespace MissionPlanner
 
                 if (res == System.Windows.Forms.DialogResult.OK)
                 {
-                    StreamWriter sw = new StreamWriter(sfd.OpenFile());
-                    foreach (string line in log)
-                    {
-                        sw.Write(line);
-                    }
-                    sw.Close();
+                    MissionPlanner.Log.BinaryLog.ConvertBin(ofd.FileName, sfd.FileName);
                 }
             }
         }
@@ -1164,10 +1157,18 @@ namespace MissionPlanner
                         xmlwriter.WriteElementString("urlvrbrainv50", new Uri(software.urlvrbrainv50).LocalPath.TrimStart('/', '\\'));
                     if (software.urlvrbrainv51 != "")
                         xmlwriter.WriteElementString("urlvrbrainv51", new Uri(software.urlvrbrainv51).LocalPath.TrimStart('/', '\\'));
+                    if (software.urlvrbrainv52 != "")
+                        xmlwriter.WriteElementString("urlvrbrainv52", new Uri(software.urlvrbrainv52).LocalPath.TrimStart('/', '\\'));
                     if (software.urlvrherov10 != "")
                         xmlwriter.WriteElementString("urlvrherov10", new Uri(software.urlvrherov10).LocalPath.TrimStart('/', '\\'));
                     if (software.urlvrubrainv51 != "")
                         xmlwriter.WriteElementString("urlvrubrainv51", new Uri(software.urlvrubrainv51).LocalPath.TrimStart('/', '\\'));
+                    if (software.urlvrubrainv52 != "")
+                        xmlwriter.WriteElementString("urlvrubrainv52", new Uri(software.urlvrubrainv52).LocalPath.TrimStart('/', '\\'));
+                    if (software.urlvrgimbalv20 != "")
+                        xmlwriter.WriteElementString("urlvrgimbalv20", new Uri(software.urlvrgimbalv20).LocalPath.TrimStart('/', '\\'));
+                    if (software.urlvrugimbalv11 != "")
+                        xmlwriter.WriteElementString("urlvrugimbalv11", new Uri(software.urlvrugimbalv11).LocalPath.TrimStart('/', '\\'));
                     xmlwriter.WriteElementString("name", software.name);
                     xmlwriter.WriteElementString("desc", software.desc);
                     xmlwriter.WriteElementString("format_version", software.k_format_version.ToString());
@@ -1210,6 +1211,10 @@ namespace MissionPlanner
                     {
                         Common.getFilefromNet(software.urlvrbrainv51, basedir + new Uri(software.urlvrbrainv51).LocalPath);
                     }
+                    if (software.urlvrbrainv52 != "")
+                    {
+                        Common.getFilefromNet(software.urlvrbrainv52, basedir + new Uri(software.urlvrbrainv52).LocalPath);
+                    }
                     if (software.urlvrherov10 != "")
                     {
                         Common.getFilefromNet(software.urlvrherov10, basedir + new Uri(software.urlvrherov10).LocalPath);
@@ -1217,6 +1222,18 @@ namespace MissionPlanner
                     if (software.urlvrubrainv51 != "")
                     {
                         Common.getFilefromNet(software.urlvrubrainv51, basedir + new Uri(software.urlvrubrainv51).LocalPath);
+                    }
+                    if (software.urlvrubrainv52 != "")
+                    {
+                        Common.getFilefromNet(software.urlvrubrainv52, basedir + new Uri(software.urlvrubrainv52).LocalPath);
+                    }
+                    if (software.urlvrgimbalv20 != "")
+                    {
+                        Common.getFilefromNet(software.urlvrgimbalv20, basedir + new Uri(software.urlvrgimbalv20).LocalPath);
+                    }
+                    if (software.urlvrugimbalv11 != "")
+                    {
+                        Common.getFilefromNet(software.urlvrugimbalv11, basedir + new Uri(software.urlvrugimbalv11).LocalPath);
                     }
                 }
 
@@ -1261,8 +1278,13 @@ namespace MissionPlanner
 
         TcpListener listener;
 
+        TcpClient client;
+
         private void but_mavserialport_Click(object sender, EventArgs e)
         {
+            if (comport != null)
+                comport.Close();
+
             comport = new Comms.MAVLinkSerialPort(MainV2.comPort, MAVLink.SERIAL_CONTROL_DEV.GPS1);
 
             if (listener != null)
@@ -1280,19 +1302,25 @@ namespace MissionPlanner
 
         private void DoAcceptTcpClientCallback(IAsyncResult ar)
         {
-                   // Get the listener that handles the client request.
+            // Get the listener that handles the client request.
             TcpListener listener = (TcpListener)ar.AsyncState;
+
+            listener.BeginAcceptTcpClient(new AsyncCallback(DoAcceptTcpClientCallback), listener);
+
+            if (client != null && client.Connected)
+                return;
 
             // End the operation and display the received data on  
             // the console.
             using (
-            TcpClient client = listener.EndAcceptTcpClient(ar))
+            client = listener.EndAcceptTcpClient(ar))
             {
                 NetworkStream stream = client.GetStream();
 
-                comport.Open();
+                if (!comport.IsOpen)
+                    comport.Open();
 
-                while (true)
+                while (client.Connected && comport.IsOpen)
                 {
 
                     while (stream.DataAvailable)
@@ -1312,14 +1340,14 @@ namespace MissionPlanner
                         var data = new byte[4096];
                         try
                         {
-                        int len = comport.Read(data, 0, data.Length);
+                            int len = comport.Read(data, 0, data.Length);
 
-                        stream.Write(data, 0, len);
+                            stream.Write(data, 0, len);
                         }
                         catch { }
                     }
 
-                   // System.Threading.Thread.Sleep(1);
+                     System.Threading.Thread.Sleep(1);
                 }
             }
         }
@@ -1554,9 +1582,9 @@ namespace MissionPlanner
                         
                     }
 
-                    dp.close();
+                   // dp.close();
 
-                    mine.Close();
+                   // mine.Close();
                 }
             }
 

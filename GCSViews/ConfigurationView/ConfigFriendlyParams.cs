@@ -84,7 +84,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                 catch
                 {
                     errorThrown = true;
-                    CustomMessageBox.Show("Set " + x.Key + " Failed", "Error");
+                    CustomMessageBox.Show(String.Format(Strings.ErrorSetValueFailed,x.Key), Strings.ERROR);
                 }
             });
             if (!errorThrown)
@@ -104,7 +104,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
             if (!MainV2.comPort.BaseStream.IsOpen)
                 return;
 
-            if (DialogResult.OK == CustomMessageBox.Show("Update Params\nDON'T DO THIS IF YOU ARE IN THE AIR\n", "Error", MessageBoxButtons.OKCancel))
+            if (DialogResult.OK == CustomMessageBox.Show(Strings.WarningUpdateParamList, Strings.ERROR, MessageBoxButtons.OKCancel))
             {
 
                 ((Control)sender).Enabled = false;
@@ -116,7 +116,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                 catch (Exception ex)
                 {
                     log.Error("Exception getting param list", ex);
-                    CustomMessageBox.Show("Error: getting param list", "Error");
+                    CustomMessageBox.Show(Strings.ErrorReceivingParams, Strings.ERROR);
                 }
 
 
@@ -179,8 +179,8 @@ namespace MissionPlanner.GCSViews.ConfigurationView
             // When the parameter list is changed, re sort the list for our View's purposes
             MainV2.comPort.MAV.param.Keys.ForEach(x =>
             {
-                string displayName = ParameterMetaDataRepository.GetParameterMetaData(x.ToString(), ParameterMetaDataConstants.DisplayName);
-                string parameterMode = ParameterMetaDataRepository.GetParameterMetaData(x.ToString(), ParameterMetaDataConstants.User);
+                string displayName = ParameterMetaDataRepository.GetParameterMetaData(x.ToString(), ParameterMetaDataConstants.DisplayName, MainV2.comPort.MAV.cs.firmware.ToString());
+                string parameterMode = ParameterMetaDataRepository.GetParameterMetaData(x.ToString(), ParameterMetaDataConstants.User, MainV2.comPort.MAV.cs.firmware.ToString());
 
                 // If we have a friendly display name AND
                 if (!String.IsNullOrEmpty(displayName) &&
@@ -259,9 +259,9 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                     bool controlAdded = false;
 
                     string value = ((float)MainV2.comPort.MAV.param[x.Key]).ToString("0.###");
-                    string description = ParameterMetaDataRepository.GetParameterMetaData(x.Key, ParameterMetaDataConstants.Description);
+                    string description = ParameterMetaDataRepository.GetParameterMetaData(x.Key, ParameterMetaDataConstants.Description, MainV2.comPort.MAV.cs.firmware.ToString());
                     string displayName = x.Value + " (" + x.Key + ")";
-                    string units = ParameterMetaDataRepository.GetParameterMetaData(x.Key, ParameterMetaDataConstants.Units);
+                    string units = ParameterMetaDataRepository.GetParameterMetaData(x.Key, ParameterMetaDataConstants.Units, MainV2.comPort.MAV.cs.firmware.ToString());
 
                     var items = this.Controls.Find(x.Key,true);
                     if (items.Length > 0)
@@ -285,8 +285,8 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                     }
 
                     // If this is a range
-                    string rangeRaw = ParameterMetaDataRepository.GetParameterMetaData(x.Key, ParameterMetaDataConstants.Range);
-                    string incrementRaw = ParameterMetaDataRepository.GetParameterMetaData(x.Key, ParameterMetaDataConstants.Increment);
+                    string rangeRaw = ParameterMetaDataRepository.GetParameterMetaData(x.Key, ParameterMetaDataConstants.Range, MainV2.comPort.MAV.cs.firmware.ToString());
+                    string incrementRaw = ParameterMetaDataRepository.GetParameterMetaData(x.Key, ParameterMetaDataConstants.Increment, MainV2.comPort.MAV.cs.firmware.ToString());
                     
                     if (!String.IsNullOrEmpty(rangeRaw) && !String.IsNullOrEmpty(incrementRaw))
                     {
@@ -351,7 +351,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                     if (!controlAdded)
                     {
                         // If this is a subset of values
-                        string availableValuesRaw = ParameterMetaDataRepository.GetParameterMetaData(x.Key, ParameterMetaDataConstants.Values);
+                        string availableValuesRaw = ParameterMetaDataRepository.GetParameterMetaData(x.Key, ParameterMetaDataConstants.Values, MainV2.comPort.MAV.cs.firmware.ToString());
                         if (!String.IsNullOrEmpty(availableValuesRaw))
                         {
                             string[] availableValues = availableValuesRaw.Split(new[] { ',' });
@@ -419,12 +419,12 @@ namespace MissionPlanner.GCSViews.ConfigurationView
 
             if (!String.IsNullOrEmpty(units))
             {
-                returnDescription.Append(String.Format("Units: {0}{1}", units, Environment.NewLine));
+                returnDescription.Append(String.Format(Strings.Units, units, Environment.NewLine));
             }
 
             if (!String.IsNullOrEmpty(description))
             {
-                returnDescription.Append("Description: ");
+                returnDescription.Append(Strings.Desc);
                 var descriptionParts = description.Split(new char[] { ' ' });
                 for (int i = 0; i < descriptionParts.Length; i++)
                 {

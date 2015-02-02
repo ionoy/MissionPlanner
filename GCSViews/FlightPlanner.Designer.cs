@@ -74,7 +74,7 @@
             this.Grad = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Dist = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.AZ = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.CHK_geheight = new System.Windows.Forms.CheckBox();
+            this.CHK_verifyheight = new System.Windows.Forms.CheckBox();
             this.TXT_WPRad = new System.Windows.Forms.TextBox();
             this.TXT_DefaultAlt = new System.Windows.Forms.TextBox();
             this.LBL_WPRad = new System.Windows.Forms.Label();
@@ -142,6 +142,7 @@
             this.clearPolygonToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.savePolygonToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.loadPolygonToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.fromSHPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.rallyPointsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.setRallyPointToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.getRallyPointsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -190,7 +191,7 @@
             this.panelBASE = new System.Windows.Forms.Panel();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.timer1 = new System.Windows.Forms.Timer(this.components);
-            this.fromSHPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.lbl_wpfile = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.Commands)).BeginInit();
             this.panel5.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -256,6 +257,7 @@
             // 
             // Command
             // 
+            this.Command.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCellsExceptHeader;
             dataGridViewCellStyle2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(67)))), ((int)(((byte)(68)))), ((int)(((byte)(69)))));
             dataGridViewCellStyle2.ForeColor = System.Drawing.Color.White;
             this.Command.DefaultCellStyle = dataGridViewCellStyle2;
@@ -268,7 +270,6 @@
             this.Param1.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCellsExceptHeader;
             resources.ApplyResources(this.Param1, "Param1");
             this.Param1.Name = "Param1";
-            this.Param1.Resizable = System.Windows.Forms.DataGridViewTriState.True;
             this.Param1.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             // 
             // Param2
@@ -276,7 +277,6 @@
             this.Param2.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCellsExceptHeader;
             resources.ApplyResources(this.Param2, "Param2");
             this.Param2.Name = "Param2";
-            this.Param2.Resizable = System.Windows.Forms.DataGridViewTriState.True;
             this.Param2.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             // 
             // Param3
@@ -284,7 +284,6 @@
             this.Param3.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCellsExceptHeader;
             resources.ApplyResources(this.Param3, "Param3");
             this.Param3.Name = "Param3";
-            this.Param3.Resizable = System.Windows.Forms.DataGridViewTriState.True;
             this.Param3.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             // 
             // Param4
@@ -292,7 +291,6 @@
             this.Param4.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCellsExceptHeader;
             resources.ApplyResources(this.Param4, "Param4");
             this.Param4.Name = "Param4";
-            this.Param4.Resizable = System.Windows.Forms.DataGridViewTriState.True;
             this.Param4.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             // 
             // Lat
@@ -318,12 +316,14 @@
             // 
             // Delete
             // 
+            this.Delete.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCellsExceptHeader;
             resources.ApplyResources(this.Delete, "Delete");
             this.Delete.Name = "Delete";
             this.Delete.Text = "X";
             // 
             // Up
             // 
+            this.Up.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCellsExceptHeader;
             this.Up.DefaultCellStyle = dataGridViewCellStyle3;
             resources.ApplyResources(this.Up, "Up");
             this.Up.Image = ((System.Drawing.Image)(resources.GetObject("Up.Image")));
@@ -332,6 +332,7 @@
             // 
             // Down
             // 
+            this.Down.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCellsExceptHeader;
             dataGridViewCellStyle4.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
             this.Down.DefaultCellStyle = dataGridViewCellStyle4;
             resources.ApplyResources(this.Down, "Down");
@@ -341,6 +342,7 @@
             // 
             // Grad
             // 
+            this.Grad.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCellsExceptHeader;
             resources.ApplyResources(this.Grad, "Grad");
             this.Grad.Name = "Grad";
             this.Grad.ReadOnly = true;
@@ -348,6 +350,7 @@
             // 
             // Dist
             // 
+            this.Dist.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCellsExceptHeader;
             resources.ApplyResources(this.Dist, "Dist");
             this.Dist.Name = "Dist";
             this.Dist.ReadOnly = true;
@@ -355,16 +358,17 @@
             // 
             // AZ
             // 
+            this.AZ.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCellsExceptHeader;
             resources.ApplyResources(this.AZ, "AZ");
             this.AZ.Name = "AZ";
             this.AZ.ReadOnly = true;
             this.AZ.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             // 
-            // CHK_geheight
+            // CHK_verifyheight
             // 
-            resources.ApplyResources(this.CHK_geheight, "CHK_geheight");
-            this.CHK_geheight.Name = "CHK_geheight";
-            this.CHK_geheight.UseVisualStyleBackColor = true;
+            resources.ApplyResources(this.CHK_verifyheight, "CHK_verifyheight");
+            this.CHK_verifyheight.Name = "CHK_verifyheight";
+            this.CHK_verifyheight.UseVisualStyleBackColor = true;
             // 
             // TXT_WPRad
             // 
@@ -530,7 +534,7 @@
             this.panelWaypoints.Controls.Add(this.LBL_defalutalt);
             this.panelWaypoints.Controls.Add(this.Commands);
             this.panelWaypoints.Controls.Add(this.TXT_DefaultAlt);
-            this.panelWaypoints.Controls.Add(this.CHK_geheight);
+            this.panelWaypoints.Controls.Add(this.CHK_verifyheight);
             this.panelWaypoints.Controls.Add(this.TXT_WPRad);
             this.panelWaypoints.Controls.Add(this.BUT_Add);
             this.panelWaypoints.CustomColors.BorderColor = System.Drawing.Color.Black;
@@ -680,6 +684,7 @@
             // 
             // panel2
             // 
+            this.panel2.Controls.Add(this.lbl_wpfile);
             this.panel2.Controls.Add(this.BUT_loadwpfile);
             this.panel2.Controls.Add(this.BUT_saveWPFile);
             resources.ApplyResources(this.panel2, "panel2");
@@ -919,6 +924,12 @@
             this.loadPolygonToolStripMenuItem.Name = "loadPolygonToolStripMenuItem";
             resources.ApplyResources(this.loadPolygonToolStripMenuItem, "loadPolygonToolStripMenuItem");
             this.loadPolygonToolStripMenuItem.Click += new System.EventHandler(this.loadPolygonToolStripMenuItem_Click);
+            // 
+            // fromSHPToolStripMenuItem
+            // 
+            this.fromSHPToolStripMenuItem.Name = "fromSHPToolStripMenuItem";
+            resources.ApplyResources(this.fromSHPToolStripMenuItem, "fromSHPToolStripMenuItem");
+            this.fromSHPToolStripMenuItem.Click += new System.EventHandler(this.fromSHPToolStripMenuItem_Click);
             // 
             // rallyPointsToolStripMenuItem
             // 
@@ -1241,11 +1252,10 @@
             this.timer1.Interval = 1200;
             this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
             // 
-            // fromSHPToolStripMenuItem
+            // lbl_wpfile
             // 
-            this.fromSHPToolStripMenuItem.Name = "fromSHPToolStripMenuItem";
-            resources.ApplyResources(this.fromSHPToolStripMenuItem, "fromSHPToolStripMenuItem");
-            this.fromSHPToolStripMenuItem.Click += new System.EventHandler(this.fromSHPToolStripMenuItem_Click);
+            resources.ApplyResources(this.lbl_wpfile, "lbl_wpfile");
+            this.lbl_wpfile.Name = "lbl_wpfile";
             // 
             // FlightPlanner
             // 
@@ -1269,6 +1279,7 @@
             this.panel3.ResumeLayout(false);
             this.panel3.PerformLayout();
             this.panel2.ResumeLayout(false);
+            this.panel2.PerformLayout();
             this.panelMap.ResumeLayout(false);
             this.panelMap.PerformLayout();
             this.contextMenuStrip1.ResumeLayout(false);
@@ -1297,7 +1308,7 @@
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.Label lbl_status;
         private System.Windows.Forms.DataGridView Commands;
-        private System.Windows.Forms.CheckBox CHK_geheight;
+        private System.Windows.Forms.CheckBox CHK_verifyheight;
         private Controls.MyButton BUT_Add;
         private System.Windows.Forms.TextBox TXT_WPRad;
         private System.Windows.Forms.TextBox TXT_DefaultAlt;
@@ -1379,20 +1390,6 @@
         private System.Windows.Forms.ToolStripMenuItem prefetchWPPathToolStripMenuItem;
         private System.Windows.Forms.Label label17;
         private System.Windows.Forms.TextBox TXT_altwarn;
-        private System.Windows.Forms.DataGridViewComboBoxColumn Command;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Param1;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Param2;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Param3;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Param4;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Lat;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Lon;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Alt;
-        private System.Windows.Forms.DataGridViewButtonColumn Delete;
-        private System.Windows.Forms.DataGridViewImageColumn Up;
-        private System.Windows.Forms.DataGridViewImageColumn Down;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Grad;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Dist;
-        private System.Windows.Forms.DataGridViewTextBoxColumn AZ;
         private System.Windows.Forms.ToolStripMenuItem pOIToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem poiaddToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem poideleteToolStripMenuItem;
@@ -1413,5 +1410,20 @@
         private System.Windows.Forms.ToolStripMenuItem createSplineCircleToolStripMenuItem;
         private System.Windows.Forms.ComboBox CMB_altmode;
         private System.Windows.Forms.ToolStripMenuItem fromSHPToolStripMenuItem;
+        private System.Windows.Forms.DataGridViewComboBoxColumn Command;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Param1;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Param2;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Param3;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Param4;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Lat;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Lon;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Alt;
+        private System.Windows.Forms.DataGridViewButtonColumn Delete;
+        private System.Windows.Forms.DataGridViewImageColumn Up;
+        private System.Windows.Forms.DataGridViewImageColumn Down;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Grad;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Dist;
+        private System.Windows.Forms.DataGridViewTextBoxColumn AZ;
+        private System.Windows.Forms.Label lbl_wpfile;
     }
 }

@@ -8,11 +8,27 @@ using System.Text.RegularExpressions;
 using ICSharpCode.SharpZipLib.Zip;
 using System.Threading;
 using System.Collections;
+using log4net;
 
 namespace MissionPlanner
 {
     public class srtm: IDisposable
     {
+        private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+        public enum tiletype
+        {
+            valid,
+            invalid,
+            ocean
+        }
+
+        public class altresponce
+        {
+            public tiletype currenttype = tiletype.invalid;
+            public double alt = 0;
+        }
+
         public static string datadirectory = "./srtm/";
 
         static List<string> allhgts = new List<string>();
@@ -29,11 +45,14 @@ namespace MissionPlanner
 
         static Hashtable filecache = new Hashtable();
 
+        static List<string> oceantile = new List<string>();
+
         static Dictionary<string, short[,]> cache = new Dictionary<string, short[,]>();
 
-        public static double getAltitude(double lat, double lng, double zoom = 16)
+        public static altresponce getAltitude(double lat, double lng, double zoom = 16)
         {
             short alt = 0;
+            var answer = new altresponce();
 
             //lat += 1 / 1199.0;
             //lng -= 1 / 1201f;
@@ -57,6 +76,7 @@ namespace MissionPlanner
             else
                 ew = "W";
 
+            // running tostring at a high rate was costing cpu
             if (fnamecache[y] == null)
                 fnamecache[y] = Math.Abs(y).ToString("00");
             if (fnamecache[1000 + x] == null)
@@ -85,8 +105,8 @@ namespace MissionPlanner
                         {
                             size = 3601;
                         }
-                        else 
-                            return -1;
+                        else
+                            return answer;
 
                         byte[] altbytes = new byte[2];
                         short[,] altdata = new short[size, size];
@@ -121,7 +141,7 @@ namespace MissionPlanner
                         size = 3601;
                     }
                     else
-                        return -1;
+                        return answer;
 
                     // remove the base lat long
                     lat -= y;
@@ -148,7 +168,9 @@ namespace MissionPlanner
                     double v2 = avg(alt01, alt11, x_frac);
                     double v = avg(v1, v2, -y_frac);
 
-                    return v;
+                    answer.currenttype = tiletype.valid;
+                    answer.alt = v;
+                    return answer;
                 }
 
                 string filename2 = "srtm_" + Math.Round((lng + 2.5 + 180) / 5, 0).ToString("00") + "_" + Math.Round((60 - lat + 2.5) / 5, 0).ToString("00") + ".asc";
@@ -224,7 +246,9 @@ namespace MissionPlanner
                                 {
                                     Console.WriteLine("{0} {1} {2} {3} ans {4} x {5}", lng, lat, left, top, data[(int)wantcol], (nox + wantcol * cellsize));
 
-                                    return int.Parse(data[(int)wantcol]);
+                                    answer.currenttype = tiletype.valid;
+                                    answer.alt = int.Parse(data[(int)wantcol]);
+                                    return answer;
                                 }
 
                                 rowcounter++;
@@ -236,11 +260,15 @@ namespace MissionPlanner
                     }
 
                     //sr.Close();
-
-                    return alt;
+                    answer.currenttype = tiletype.valid;
+                    answer.alt = alt;
+                    return answer;
                 }
                 else // get something
                 {
+                    if (oceantile.Contains(filename))
+                        answer.currenttype = tiletype.ocean;
+
                     if (zoom >= 12)
                     {
                         if (!Directory.Exists(datadirectory))
@@ -271,9 +299,9 @@ namespace MissionPlanner
                 }
 
             }
-            catch { alt = 0; }
+            catch { answer.alt = 0; answer.currenttype = tiletype.invalid; }
 
-            return alt;
+            return answer;
         }
 
         static double GetAlt(string filename, int x, int y)
@@ -333,7 +361,10 @@ namespace MissionPlanner
                         }
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                { 
+                    log.Error(ex);
+                }
                 Thread.Sleep(1000);
             }
         }
@@ -351,8 +382,11 @@ namespace MissionPlanner
                     return;
             }
 
+            int checkednames = 0;
+            List<string> list = new List<string>();
+
             // load 1 arc seconds first
-            List<string> list = getListing(baseurl1sec);
+            list.AddRange(getListing(baseurl1sec));
             // load 3 arc second
             list.AddRange(getListing(baseurl));
 
@@ -364,6 +398,7 @@ namespace MissionPlanner
 
                 foreach (string hgt in hgtfiles)
                 {
+                    checkednames++;
                     if (hgt.Contains((string)name))
                     {
                         // get file
@@ -372,6 +407,14 @@ namespace MissionPlanner
                         return;
                     }
                 }
+            }
+
+            // if there are no http exceptions, and the list is >= 20, then everything above is valid
+            // 15760 is all srtm3 and srtm1
+            if (list.Count >= 20 && checkednames > 15700)
+            {
+                // we must be an ocean tile - no matchs
+                oceantile.Add((string)name);
             }
         }
 
@@ -406,7 +449,10 @@ namespace MissionPlanner
 
                 fzip.ExtractZip(datadirectory + Path.DirectorySeparatorChar + filename + ".zip", datadirectory, "");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                log.Error(ex);
+            }
         }
 
         static List<string> getListing(string url)
@@ -419,22 +465,21 @@ namespace MissionPlanner
 
             if (File.Exists(datadirectory + Path.DirectorySeparatorChar + name))
             {
-                StreamReader sr = new StreamReader(datadirectory + Path.DirectorySeparatorChar + name);
-
-                while (!sr.EndOfStream)
+                using (StreamReader sr = new StreamReader(datadirectory + Path.DirectorySeparatorChar + name))
                 {
-                    list.Add(sr.ReadLine());
+                    while (!sr.EndOfStream)
+                    {
+                        list.Add(sr.ReadLine());
+                    }
+
+                    sr.Close();
                 }
-
-                sr.Close();
-
                 return list;
             }
 
-
             try
             {
-                StreamWriter sw = new StreamWriter(datadirectory + Path.DirectorySeparatorChar + name);
+                log.Info("srtm req " + url);
 
                 WebRequest req = HttpWebRequest.Create(url);
 
@@ -454,20 +499,28 @@ namespace MissionPlanner
                             continue;
                         if (matchs[i].Groups[1].Value.ToString().Contains("http"))
                             continue;
+                        if (matchs[i].Groups[1].Value.ToString().EndsWith("/srtm/version2_1/"))
+                            continue;
 
                         list.Add(url.TrimEnd(new char[] { '/', '\\' }) + "/" + matchs[i].Groups[1].Value.ToString());
-
                     }
                 }
 
-                list.ForEach(x =>
+                using (StreamWriter sw = new StreamWriter(datadirectory + Path.DirectorySeparatorChar + name))
                 {
-                    sw.WriteLine((string)x);
-                });
+                    list.ForEach(x =>
+                    {
+                        sw.WriteLine((string)x);
+                    });
 
-                sw.Close();
+                    sw.Close();
+                }
             }
-            catch { }
+            catch (WebException ex)
+            {
+                log.Error(ex);
+                throw;
+            }
 
             return list;
         }

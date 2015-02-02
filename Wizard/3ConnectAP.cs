@@ -90,7 +90,7 @@ namespace MissionPlanner.Wizard
 
             if (comport == "")
             {
-                CustomMessageBox.Show("Please select a comport", "error");
+                CustomMessageBox.Show(Strings.SelectComport, Strings.ERROR);
                 return 0;
             }
 
@@ -130,6 +130,9 @@ namespace MissionPlanner.Wizard
 
             if (string.IsNullOrEmpty(pdr.doWorkArgs.ErrorMessage))
             {
+                if (Wizard.config["fwtype"].ToString() == "copter" && Wizard.config["fwframe"].ToString() == "tri")
+                    // check if its a tri, and skip the frame type screen
+                    return 2;
                 if (Wizard.config["fwtype"].ToString() == "copter")
                     // check if its a quad, and show the frame type screen
                     return 1;

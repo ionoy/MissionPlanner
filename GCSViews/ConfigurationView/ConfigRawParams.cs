@@ -138,9 +138,13 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                 Hashtable data = new Hashtable();
                 foreach (DataGridViewRow row in Params.Rows)
                 {
-                    float value = float.Parse(row.Cells[1].Value.ToString());
+                    try
+                    {
+                        float value = float.Parse(row.Cells[1].Value.ToString());
 
-                    data[row.Cells[0].Value.ToString()] = value;
+                        data[row.Cells[0].Value.ToString()] = value;
+                    }
+                    catch (Exception) { CustomMessageBox.Show(Strings.InvalidNumberEntered + " " + row.Cells[0].Value.ToString()); }
                 }
 
                 Utilities.ParamFile.SaveParamFile(sfd.FileName,data);
@@ -226,7 +230,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
             if (!MainV2.comPort.BaseStream.IsOpen)
                 return;
 
-            if (DialogResult.OK == CustomMessageBox.Show("Update Params\nDON'T DO THIS IF YOU ARE IN THE AIR\n", "Error", MessageBoxButtons.OKCancel))
+            if (DialogResult.OK == CustomMessageBox.Show(Strings.WarningUpdateParamList, Strings.ERROR, MessageBoxButtons.OKCancel))
             {
                 ((Control)sender).Enabled = false;
 
@@ -237,7 +241,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                 catch (Exception ex)
                 {
                     log.Error("Exception getting param list", ex);
-                    CustomMessageBox.Show("Error: getting param list", "Error");
+                    CustomMessageBox.Show(Strings.ErrorReceivingParams, Strings.ERROR);
                 }
 
 
@@ -270,7 +274,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
 
                 float newvalue = float.Parse(value.Replace(',', '.'), CultureInfo.InvariantCulture);
 
-                if (ParameterMetaDataRepository.GetParameterRange(Params[Command.Index, e.RowIndex].Value.ToString(), ref min, ref max))
+                if (ParameterMetaDataRepository.GetParameterRange(Params[Command.Index, e.RowIndex].Value.ToString(), ref min, ref max, MainV2.comPort.MAV.cs.firmware.ToString()))
                 {
                     if (newvalue > max || newvalue < min)
                     {
@@ -351,15 +355,15 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                 Params.Rows[Params.RowCount - 1].Cells[Value.Index].Value = ((float)MainV2.comPort.MAV.param[value]).ToString();
                 try
                 {
-                    string metaDataDescription = ParameterMetaDataRepository.GetParameterMetaData(value, ParameterMetaDataConstants.Description);
+                    string metaDataDescription = ParameterMetaDataRepository.GetParameterMetaData(value, ParameterMetaDataConstants.Description, MainV2.comPort.MAV.cs.firmware.ToString());
                     if (!String.IsNullOrEmpty(metaDataDescription))
                     {
                         Params.Rows[Params.RowCount - 1].Cells[Command.Index].ToolTipText = metaDataDescription;
                         Params.Rows[Params.RowCount - 1].Cells[Value.Index].ToolTipText = metaDataDescription;
 
-                        string range = ParameterMetaDataRepository.GetParameterMetaData(value, ParameterMetaDataConstants.Range);
-                        string options = ParameterMetaDataRepository.GetParameterMetaData(value, ParameterMetaDataConstants.Values);
-                        string units = ParameterMetaDataRepository.GetParameterMetaData(value, ParameterMetaDataConstants.Units);
+                        string range = ParameterMetaDataRepository.GetParameterMetaData(value, ParameterMetaDataConstants.Range, MainV2.comPort.MAV.cs.firmware.ToString());
+                        string options = ParameterMetaDataRepository.GetParameterMetaData(value, ParameterMetaDataConstants.Values, MainV2.comPort.MAV.cs.firmware.ToString());
+                        string units = ParameterMetaDataRepository.GetParameterMetaData(value, ParameterMetaDataConstants.Units, MainV2.comPort.MAV.cs.firmware.ToString());
 
                         Params.Rows[Params.RowCount - 1].Cells[Units.Index].Value = units;
                         Params.Rows[Params.RowCount - 1].Cells[Options.Index].Value = range + options.Replace(","," ");
@@ -497,7 +501,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
 
                 CustomMessageBox.Show("Your board is now rebooting, You will be required to reconnect to the autopilot.");
                 }
-                catch (Exception ex) { log.Error(ex); CustomMessageBox.Show("Error talking to board."+ex.ToString(), "Error"); }
+                catch (Exception ex) { log.Error(ex); CustomMessageBox.Show(Strings.ErrorCommunicating +"\n"+ ex.ToString(), Strings.ERROR); }
             }
         }
     }

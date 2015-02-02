@@ -43,6 +43,12 @@ namespace MissionPlanner.GCSViews.ConfigurationView
 
             int motormax = 8;
 
+            if (!MainV2.comPort.MAV.param.ContainsKey("FRAME"))
+            {
+                this.Enabled = false;
+                return;
+            }
+
             HIL.Motor[] motors = new HIL.Motor[0];
 
             if (MainV2.comPort.MAV.aptype == MAVLink.MAV_TYPE.TRICOPTER)
@@ -115,7 +121,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            System.Diagnostics.Process.Start("http://copter.ardupilot.com/wiki/connecting-your-rc-input-and-motors/");
+            System.Diagnostics.Process.Start("http://copter.ardupilot.com/wiki/motor-setup/");
         }
     }
 }

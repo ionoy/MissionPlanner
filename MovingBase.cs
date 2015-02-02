@@ -64,15 +64,15 @@ namespace MissionPlanner
                 {
                     comPort.PortName = CMB_serialport.Text;
                 }
-                catch { CustomMessageBox.Show("Invalid PortName", "Error"); return; }
+                catch { CustomMessageBox.Show(Strings.InvalidPortName, Strings.ERROR); return; }
                 try {
                 comPort.BaudRate = int.Parse(CMB_baudrate.Text);
                 }
-                catch { CustomMessageBox.Show("Invalid BaudRate", "Error"); return; }
+                catch { CustomMessageBox.Show(Strings.InvalidBaudRate, Strings.ERROR); return; }
                 try {
                 comPort.Open();
                 }
-                catch (Exception ex) { CustomMessageBox.Show("Error Connecting\nif using com0com please rename the ports to COM??\n" + ex.ToString(), "Error"); return; }
+                catch (Exception ex) { CustomMessageBox.Show("Error Connecting\nif using com0com please rename the ports to COM??\n" + ex.ToString(), Strings.ERROR); return; }
 
                 t12 = new System.Threading.Thread(new System.Threading.ThreadStart(mainloop))
                 {
@@ -167,7 +167,9 @@ namespace MissionPlanner
                             nextrallypntupdate = DateTime.Now.AddSeconds(5);
                             try
                             {
-                                MainV2.comPort.setRallyPoint(0, new PointLatLngAlt(gotolocation) { Alt = gotolocation.Alt + double.Parse(MainV2.config["TXT_DefaultAlt"].ToString()) }, 0, 0, 0, (byte)(float)MainV2.comPort.MAV.param["RALLY_TOTAL"]);
+                                    MainV2.comPort.setRallyPoint(0, new PointLatLngAlt(gotolocation) { Alt = gotolocation.Alt + double.Parse(MainV2.config["TXT_DefaultAlt"].ToString()) }, 0, 0, 0, (byte)(float)MainV2.comPort.MAV.param["RALLY_TOTAL"]);
+
+                                    MainV2.comPort.setParam("RALLY_TOTAL", 1);
                             }
                             catch (Exception ex) { Console.WriteLine(ex.ToString()); }
                         }
@@ -236,7 +238,7 @@ namespace MissionPlanner
             {
                 updaterate = float.Parse(CMB_updaterate.Text.Replace("hz", ""));
             }
-            catch { CustomMessageBox.Show("Bad Update Rate", "Error"); }
+            catch { CustomMessageBox.Show(Strings.InvalidUpdateRate, Strings.ERROR); }
         }
 
         private void CHK_updateRallyPnt_CheckedChanged(object sender, EventArgs e)

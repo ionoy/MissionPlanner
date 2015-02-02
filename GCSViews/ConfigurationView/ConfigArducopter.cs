@@ -70,15 +70,15 @@ namespace MissionPlanner.GCSViews.ConfigurationView
             changes.Clear();
 
             // ensure the fields are populated before setting them
-            CH7_OPT.DataSource = ParameterMetaDataRepository.GetParameterOptionsInt("CH7_OPT").ToList(); 
+            CH7_OPT.DataSource = ParameterMetaDataRepository.GetParameterOptionsInt("CH7_OPT", MainV2.comPort.MAV.cs.firmware.ToString()).ToList(); 
             CH7_OPT.DisplayMember = "Value";
             CH7_OPT.ValueMember = "Key";
 
-            CH8_OPT.DataSource = ParameterMetaDataRepository.GetParameterOptionsInt("CH8_OPT").ToList(); 
+            CH8_OPT.DataSource = ParameterMetaDataRepository.GetParameterOptionsInt("CH8_OPT", MainV2.comPort.MAV.cs.firmware.ToString()).ToList(); 
             CH8_OPT.DisplayMember = "Value";
             CH8_OPT.ValueMember = "Key";
 
-            TUNE.DataSource = ParameterMetaDataRepository.GetParameterOptionsInt("TUNE").ToList();
+            TUNE.DataSource = ParameterMetaDataRepository.GetParameterOptionsInt("TUNE", MainV2.comPort.MAV.cs.firmware.ToString()).ToList();
             TUNE.DisplayMember = "Value";
             TUNE.ValueMember = "Key";
 
@@ -198,8 +198,8 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                                 thisctl.Minimum = 0;
                             } else if (thisctl.Name.EndsWith("_IMAX"))
                             {
-                                thisctl.Maximum = 1800;
-                                thisctl.Minimum = -1800;
+                                thisctl.Maximum = 4000;
+                                thisctl.Minimum = -4000;
                             }
 
                             thisctl.Enabled = true;
@@ -340,19 +340,6 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                         arr[0].BackColor = Color.Green;
                     }
                 }
-                // keep nav_lat and nav_lon paired
-                if (name.Contains("HLD_LAT_"))
-                {
-                    string newname = name.Replace("HLD_LAT_", "HLD_LON_");
-                    Control[] arr = this.Controls.Find(newname, true);
-                    changes[newname] = value;
-
-                    if (arr.Length > 0)
-                    {
-                        arr[0].Text = ((Control)sender).Text;
-                        arr[0].BackColor = Color.Green;
-                    }
-                }
             }
             catch { }
         }
@@ -388,7 +375,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
                 }
                 catch
                 {
-                    CustomMessageBox.Show("Set " + value + " Failed", "Error");
+                    CustomMessageBox.Show(String.Format(Strings.ErrorSetValueFailed, value), Strings.ERROR);
                 }
             }
         }
@@ -411,7 +398,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
             }
             catch (Exception ex)
             {
-                CustomMessageBox.Show("Error: getting param list " + ex.ToString(), "Error");
+                CustomMessageBox.Show(Strings.ErrorReceivingParams + ex.ToString(), Strings.ERROR);
             }
 
 

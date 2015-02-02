@@ -22,6 +22,8 @@ namespace MissionPlanner.Controls
         Bitmap _terrain = new Bitmap(640,480);
         int texture = 0;
 
+        GMap.NET.Internals.Core core = new GMap.NET.Internals.Core();
+
         float _angle = 0;
         double cameraX, cameraY, cameraZ;       // camera coordinates
         double lookX, lookY, lookZ;             // camera look-at coordinates
@@ -47,7 +49,7 @@ namespace MissionPlanner.Controls
                     return;
 
                 _alt = value.Alt;
-                double size = 0.15;
+                double size = 0.01;
                 area = new RectLatLng(value.Lat + size, value.Lng - size, size*2,size*2);
                // Console.WriteLine(area.LocationMiddle + " " + value.ToString());
                 this.Invalidate();
@@ -61,6 +63,8 @@ namespace MissionPlanner.Controls
             instance = this;
 
             InitializeComponent();
+
+            core.OnMapOpen();
         }
 
         void getImage()
@@ -68,6 +72,10 @@ namespace MissionPlanner.Controls
             GMapProvider type  = GMap.NET.MapProviders.GoogleSatelliteMapProvider.Instance;
             PureProjection prj = type.Projection;
 
+            //GMap.NET.GMaps.Instance.GetImageFrom();
+
+            DateTime startimage = DateTime.Now;
+            
             if (!area.IsEmpty)
             {
                 try
@@ -82,7 +90,7 @@ namespace MissionPlanner.Controls
                     var types = type;// GMaps.Instance.GetAllLayersOfType(type);
 
                     // max zoom level
-                    zoom = 16;
+                    zoom = 20;
 
                     GPoint topLeftPx = prj.FromLatLngToPixel(area.LocationTopLeft, zoom);
                     GPoint rightButtomPx = prj.FromLatLngToPixel(area.Bottom, area.Right, zoom);
@@ -100,18 +108,29 @@ namespace MissionPlanner.Controls
 
                     }
 
+                    // get tiles - bg
+                    core.Provider = type;
+                    core.Position = LocationCenter;
+                    core.Zoom = zoom;
+
                     // get type list at new zoom level
                     List<GPoint> tileArea = prj.GetAreaTileList(area, zoom, 0);
 
-                    DateTime startimage = DateTime.Now;
+                    //this.Invalidate();
+
+                    Console.WriteLine((startimage - DateTime.Now).TotalMilliseconds);
 
                     int padding = 0;
                     {
                         using (Bitmap bmpDestination = new Bitmap((int)pxDelta.X + padding * 2, (int)pxDelta.Y + padding * 2))
                         {
+                            Console.WriteLine((startimage - DateTime.Now).TotalMilliseconds);
                             using (Graphics gfx = Graphics.FromImage(bmpDestination))
                             {
+                                Console.WriteLine((startimage - DateTime.Now).TotalMilliseconds);
                                 gfx.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceOver;
+                                gfx.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
+                                gfx.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighSpeed;
 
                                 // get tiles & combine into one
                                 foreach (var p in tileArea)
@@ -120,8 +139,10 @@ namespace MissionPlanner.Controls
 
                                    foreach (var tp in type.Overlays)
                                     {
-                                        Exception ex;
-                                        GMapImage tile = GMaps.Instance.GetImageFrom(tp, p, zoom, out ex) as GMapImage;
+                                        Console.WriteLine((startimage - DateTime.Now).TotalMilliseconds);
+                                        GMapImage tile = ((PureImageCache)Maps.MyImageCache.Instance).GetImageFromCache(type.DbId, p, zoom) as GMapImage;
+
+                                        //GMapImage tile = GMaps.Instance.GetImageFrom(tp, p, zoom, out ex) as GMapImage;
                                         //GMapImage tile = type.GetTileImage(p, zoom) as GMapImage;
                                         //tile.Img.Save(zoom + "-" + p.X + "-" + p.Y + ".bmp");
 
@@ -132,13 +153,21 @@ namespace MissionPlanner.Controls
                                                 long x = p.X * prj.TileSize.Width - topLeftPx.X + padding;
                                                 long y = p.Y * prj.TileSize.Width - topLeftPx.Y + padding;
                                                 {
+                                                    Console.WriteLine((startimage - DateTime.Now).TotalMilliseconds);
                                                     gfx.DrawImage(tile.Img, x, y, prj.TileSize.Width, prj.TileSize.Height);
+                                                    Console.WriteLine((startimage - DateTime.Now).TotalMilliseconds);
                                                 }
                                             }
+                                        }
+                                        else
+                                        {
+                                            
                                         }
                                     }
                                 }
                             }
+
+                            Console.WriteLine((startimage-DateTime.Now).TotalMilliseconds);
                             _terrain = new Bitmap(bmpDestination, 1024*2, 1024*2);
 
                            // _terrain.Save(zoom +"-map.bmp");
@@ -199,7 +228,7 @@ namespace MissionPlanner.Controls
             }
             catch { return;  }
 
-            double heightscale = (step / 90.0) * 3;
+            double heightscale = (step / 90.0) * 1.3;
 
             float radians = (float)(Math.PI * (rpy.Z * -1) / 180.0f);
 
@@ -209,7 +238,7 @@ namespace MissionPlanner.Controls
  
       cameraX = area.LocationMiddle.Lng;     // multiplying by mouseY makes the
       cameraZ = area.LocationMiddle.Lat;    // camera get closer/farther away with mouseY
-      cameraY = (LocationCenter.Alt < srtm.getAltitude(cameraZ, cameraX, 20)) ? (srtm.getAltitude(cameraZ, cameraX, 20)+ 0.2) * heightscale : LocationCenter.Alt * heightscale;// (srtm.getAltitude(lookZ, lookX, 20) + 100) * heighscale;
+      cameraY = (LocationCenter.Alt < srtm.getAltitude(cameraZ, cameraX, 20).alt) ? (srtm.getAltitude(cameraZ, cameraX, 20).alt + 0.2) * heightscale : LocationCenter.Alt * heightscale;// (srtm.getAltitude(lookZ, lookX, 20) + 100) * heighscale;
 
 
       lookX = area.LocationMiddle.Lng + Math.Sin(radians) * mouseY; ;
@@ -222,7 +251,7 @@ namespace MissionPlanner.Controls
 
             GL.MatrixMode(MatrixMode.Projection);
 
-            OpenTK.Matrix4 projection = OpenTK.Matrix4.CreatePerspectiveFieldOfView(60 * deg2rad, 1f, 0.00001f, 5000.0f);
+            OpenTK.Matrix4 projection = OpenTK.Matrix4.CreatePerspectiveFieldOfView(100 * deg2rad, 1f, 0.00001f, (float)step* 50);
             GL.LoadMatrix(ref projection);
 
             Matrix4 modelview = Matrix4.LookAt((float)cameraX, (float)cameraY, (float)cameraZ, (float)lookX, (float)lookY, (float)lookZ, 0,1,0);
@@ -271,11 +300,10 @@ namespace MissionPlanner.Controls
 
             sw.Start();
 
-           double increment = step *5;
+           double increment = step *1;
 
             double cleanup = area.Bottom % increment;
             double cleanup2 = area.Left % increment;
-
             
 
             for (double z = (area.Bottom - cleanup); z < area.Top - step; z += increment)
@@ -284,7 +312,7 @@ namespace MissionPlanner.Controls
                 GL.Begin(PrimitiveType.TriangleStrip);
                 for (double x = (area.Left - cleanup2); x < area.Right - step; x += increment)
                 {
-                    double heightl = srtm.getAltitude(z, area.Right + area.Left - x, 20);
+                    double heightl = srtm.getAltitude(z, area.Right + area.Left - x, 20).alt;
 
                   //  Console.WriteLine(x + " " + z);
 
@@ -307,7 +335,7 @@ namespace MissionPlanner.Controls
 
                     try
                     {
-                        heightl = srtm.getAltitude(z + increment, area.Right + area.Left - x, 20);
+                        heightl = srtm.getAltitude(z + increment, area.Right + area.Left - x, 20).alt;
 
                         //scale2 = (Math.Abs(x - area.Left) / area.WidthLng) * (float)_terrain.Width;
 

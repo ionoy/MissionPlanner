@@ -27,6 +27,10 @@ namespace MissionPlanner.Antenna
         public int TiltPWMRange { get; set; }
         public int PanPWMCenter { get; set; }
         public int TiltPWMCenter { get; set; }
+        public int PanSpeed { get; set; }
+        public int TiltSpeed { get; set; }
+        public int PanAccel { get; set; }
+        public int TiltAccel { get; set; }
 
         public bool PanReverse { get { return _panreverse == -1; } set { _panreverse = value == true ? -1 : 1; } }
         public bool TiltReverse { get { return _tiltreverse == -1; } set { _tiltreverse = value == true ? -1 : 1; } }
@@ -50,13 +54,13 @@ namespace MissionPlanner.Antenna
 
             if ((PanStartRange - PanEndRange) == 0)
             {
-                CustomMessageBox.Show("Invalid Pan Range", "Error");
+                CustomMessageBox.Show(Strings.InvalidPanRange, Strings.ERROR);
                 return false;
             }
 
             if ((TiltStartRange - TiltEndRange) == 0)
             {
-                CustomMessageBox.Show("Invalid Tilt Range", "Error");
+                CustomMessageBox.Show(Strings.InvalidTiltRange, Strings.ERROR);
                 return false;
             }
 
@@ -64,22 +68,20 @@ namespace MissionPlanner.Antenna
             {
                 ComPort.Open();
             }
-            catch (Exception ex) { CustomMessageBox.Show("Connect failed " + ex.Message, "Error"); return false; }
+            catch (Exception ex) { CustomMessageBox.Show(Strings.ErrorConnecting + ex.Message, Strings.ERROR); return false; }
 
             return true;
         }
 
         public bool Setup()
         {
-            int target = 100;
             // speed
-            SendCompactMaestroCommand(SetSpeed, 0, PanAddress, target);
-            SendCompactMaestroCommand(SetSpeed, 0, TiltAddress, target);
+            SendCompactMaestroCommand(SetSpeed, 0, PanAddress, PanSpeed);
+            SendCompactMaestroCommand(SetSpeed, 0, TiltAddress, TiltSpeed);
 
             // accel
-            target = 5;
-            SendCompactMaestroCommand(SetAccel, 0, PanAddress, target);
-            SendCompactMaestroCommand(SetAccel, 0, TiltAddress, target);
+            SendCompactMaestroCommand(SetAccel, 0, PanAddress, PanAccel);
+            SendCompactMaestroCommand(SetAccel, 0, TiltAddress, TiltAccel);
 
             //getCenterPWs();
 

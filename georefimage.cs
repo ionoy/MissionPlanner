@@ -5,6 +5,7 @@ using System.Reflection;
 using System.IO;
 using System.Windows.Forms;
 using com.drew.imaging.jpg;
+using com.drew.imaging.tiff;
 using com.drew.metadata;
 using log4net;
 using SharpKml.Base;
@@ -139,7 +140,7 @@ namespace MissionPlanner
             
         }
 
-        private const string PHOTO_FILES_FILTER = "*.jpg";
+        private const string PHOTO_FILES_FILTER = "*.jpg;*.tif";
         private const int JXL_ID_OFFSET = 10;
 
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
@@ -307,9 +308,21 @@ namespace MissionPlanner
                 {
                     FileInfo lcImgFile = new FileInfo(fn);
                     // Loading all meta data
-                    lcMetadata = JpegMetadataReader.ReadMetadata(lcImgFile);
+                    if (fn.ToLower().EndsWith(".jpg"))
+                    {
+                        lcMetadata = JpegMetadataReader.ReadMetadata(lcImgFile);
+                    }
+                    else if (fn.ToLower().EndsWith(".tif"))
+                    {
+                        lcMetadata = TiffMetadataReader.ReadMetadata(lcImgFile);
+                    }
                 }
                 catch (JpegProcessingException e)
+                {
+                    log.InfoFormat(e.Message);
+                    return dtaken;
+                }
+                catch (TiffProcessingException e)
                 {
                     log.InfoFormat(e.Message);
                     return dtaken;
@@ -322,6 +335,16 @@ namespace MissionPlanner
                     {
                         dtaken = lcDirectory.GetDate(0x9003);
                         log.InfoFormat("does " + lcDirectory.GetTagName(0x9003) + " " + dtaken);
+
+                        filedatecache[fn] = dtaken;
+
+                        break;
+                    }
+
+                    if (lcDirectory.ContainsTag(0x9004))
+                    {
+                        dtaken = lcDirectory.GetDate(0x9004);
+                        log.InfoFormat("does " + lcDirectory.GetTagName(0x9004) + " " + dtaken);
 
                         filedatecache[fn] = dtaken;
 
@@ -418,24 +441,29 @@ namespace MissionPlanner
 
                         string[] gpsLineValues = line.Split(new char[] { ',', ':' });
 
-                        location.Time = GetTimeFromGps(int.Parse(getValueFromStringArray(gpsLineValues, gpsweekpos), CultureInfo.InvariantCulture), int.Parse(getValueFromStringArray(gpsLineValues, timepos), CultureInfo.InvariantCulture));
-                        location.Lat = double.Parse(getValueFromStringArray(gpsLineValues, latpos), CultureInfo.InvariantCulture);
-                        location.Lon = double.Parse(getValueFromStringArray(gpsLineValues, lngpos), CultureInfo.InvariantCulture);
-                        location.RelAlt = double.Parse(getValueFromStringArray(gpsLineValues, altpos), CultureInfo.InvariantCulture);
-                        location.AltAMSL = double.Parse(getValueFromStringArray(gpsLineValues, altAMSLpos), CultureInfo.InvariantCulture);
+                        try
+                        {
 
-                        location.Roll = currentRoll;
-                        location.Pitch = currentPitch;
-                        location.Yaw = currentYaw;
+                            location.Time = GetTimeFromGps(int.Parse(getValueFromStringArray(gpsLineValues, gpsweekpos), CultureInfo.InvariantCulture), int.Parse(getValueFromStringArray(gpsLineValues, timepos), CultureInfo.InvariantCulture));
+                            location.Lat = double.Parse(getValueFromStringArray(gpsLineValues, latpos), CultureInfo.InvariantCulture);
+                            location.Lon = double.Parse(getValueFromStringArray(gpsLineValues, lngpos), CultureInfo.InvariantCulture);
+                            location.RelAlt = double.Parse(getValueFromStringArray(gpsLineValues, altpos), CultureInfo.InvariantCulture);
+                            location.AltAMSL = double.Parse(getValueFromStringArray(gpsLineValues, altAMSLpos), CultureInfo.InvariantCulture);
 
-                        
+                            location.Roll = currentRoll;
+                            location.Pitch = currentPitch;
+                            location.Yaw = currentYaw;
 
-                        long millis = ToMilliseconds(location.Time);
 
-                        //System.Diagnostics.Debug.WriteLine("GPS MSG - UTCMillis = " + millis  + "  GPS Week = " + getValueFromStringArray(gpsLineValues, gpsweekpos) + "  TimeMS = " + getValueFromStringArray(gpsLineValues, timepos));
 
-                        if (!vehiclePositionList.ContainsKey(millis))
-                            vehiclePositionList[millis] = location;
+                            long millis = ToMilliseconds(location.Time);
+
+                            //System.Diagnostics.Debug.WriteLine("GPS MSG - UTCMillis = " + millis  + "  GPS Week = " + getValueFromStringArray(gpsLineValues, gpsweekpos) + "  TimeMS = " + getValueFromStringArray(gpsLineValues, timepos));
+
+                            if (!vehiclePositionList.ContainsKey(millis))
+                                vehiclePositionList[millis] = location;
+                        }
+                        catch { Console.WriteLine("Bad GPS Line"); }
                     }
                     else if (line.ToLower().StartsWith("att"))
                     {
@@ -528,7 +556,14 @@ namespace MissionPlanner
             if (vehicleLocations == null || vehicleLocations.Count <= 0)
                 return -1;
 
-            string[] files = Directory.GetFiles(dirWithImages, PHOTO_FILES_FILTER);
+            List<string> filelist = new List<string>();
+            string[] exts = PHOTO_FILES_FILTER.Split(';');
+            foreach (var ext in exts)
+            {
+                filelist.AddRange(Directory.GetFiles(dirWithImages, ext));
+            }
+
+            string[] files = filelist.ToArray();
 
             if (files == null || files.Length == 0)
                 return -1;
@@ -892,7 +927,14 @@ namespace MissionPlanner
 
             TXT_outputlog.AppendText("Read images\n");
 
-            string[] files = Directory.GetFiles(dirWithImages, "*.jpg");
+            List<string> filelist = new List<string>();
+            string[] exts = PHOTO_FILES_FILTER.Split(';');
+            foreach (var ext in exts)
+            {
+                filelist.AddRange(Directory.GetFiles(dirWithImages, ext));
+            }
+
+            string[] files = filelist.ToArray();
 
             TXT_outputlog.AppendText("Images read : " + files.Length + "\n");
 
